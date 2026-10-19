@@ -1,0 +1,40 @@
+@model List<home_work_66.Models.Resume>
+@{
+    ViewData["Title"] = "Резюме соискателей";
+}
+<form asp-controller="Resume" asp-action="BrowseByCategory" method="get" class="mb-5">
+    <label for="categoryId">Категория</label>
+    <select name="categoryId" id="categoryId" class="form-select mb-3">
+        <option value="">Все категории</option>
+
+        @foreach (var category in ViewBag.Categories)
+        {
+            <option value="@category.Id"
+                    selected="@(ViewBag.SelectedCategoryId == category.Id)">
+                @category.Name
+            </option>
+        }
+    </select>
+
+    <button type="submit" class="btn btn-primary">Показать</button>
+</form>
+@if (Model.Any()) 
+{ 
+    foreach (var resume in Model) 
+    { 
+        <div class="mb-3"> <h5>@resume.Title</h5> <p>Категория: @resume.Category?.Name</p> <p>Зарплата: @resume.Salary</p>
+            <a asp-controller="Resume"
+               asp-action="PublicDetails"
+               asp-route-id="@resume.Id">
+                Посмотреть резюме
+            </a>
+        </div>
+
+        <hr />
+    }
+}
+else
+{
+    <p>Опубликованных резюме в этой категории пока нет.</p>
+}
+

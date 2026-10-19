@@ -1,0 +1,99 @@
+@model List<home_work_66.Models.Category>
+@{
+    ViewData["Title"] = "Управление категориями";
+}
+
+<div class="container py-4">
+    <h2 class="mb-4">Управление категориями</h2>
+
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Добавить категорию</h5>
+                    <form id="createCategoryForm" asp-controller="Category" asp-action="Create" method="post">
+                        <div class="mb-3">
+                            <label class="form-label">Название категории</label>
+                            <input type="text" id="categoryName" name="Name" class="form-control" placeholder="Например: IT, Продажи" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Добавить</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h5 class="card-title fw-bold mb-3">Список категорий</h5>
+                    <div id="noCategoriesMsg" class="@(Model.Count == 0 ? "" : "d-none")">
+                        <p class="text-muted mb-0">Категорий пока нет.</p>
+                    </div>
+                    <div id="categoriesList" class="list-group list-group-flush">
+                        @foreach (var category in Model)
+                        {
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 category-item" id="category-@category.Id">
+                                <span class="fw-semibold">@category.Name</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm delete-category-btn" data-id="@category.Id" data-name="@category.Name">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </button>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).on('submit', '#createCategoryForm', function (e) {
+            e.preventDefault();
+            let form = $(this);
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: form.serialize(),
+                success: function (res) {
+                    if (res.success) {
+                        $('#categoryName').val('');
+                        $('#noCategoriesMsg').addClass('d-none');
+                        
+                        let itemHtml = `
+                            <div class="list-group-item d-flex justify-content-between align-items-center px-0 category-item" id="category-${res.id}">
+                                <span class="fw-semibold">${res.name}</span>
+                                <button type="button" class="btn btn-outline-danger btn-sm delete-category-btn" data-id="${res.id}" data-name="${res.name}">
+                                    <i class="bi bi-trash"></i> Удалить
+                                </button>
+                            </div>
+                        `;
+                        $('#categoriesList').append(itemHtml);
+                    } else {
+                        alert(res.message);
+                    }
+                }
+            });
+        });
+
+        $(document).on('click', '.delete-category-btn', function (e) {
+            e.preventDefault();
+            let btn = $(this);
+            let id = btn.data('id');
+            let name = btn.data('name');
+            if (!confirm(`Удалить категорию «${name}»?`)) {
+                return;
+            }
+            $.post('@Url.Action("Delete", "Category")', { id: id }, function (res) {
+                if (res.success) {
+                    $(`#category-${id}`).remove();
+                    if ($('#categoriesList .category-item').length === 0) {
+                        $('#noCategoriesMsg').removeClass('d-none');
+                    }
+                } else {
+                    alert(res.message);
+                }
+            });
+        });
+    </script>
+}

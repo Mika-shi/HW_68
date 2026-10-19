@@ -1,0 +1,63 @@
+﻿@model List<home_work_66.ViewModels.CompanyResponsesViewModel>
+
+@{
+    ViewData["Title"] = "Отклики";
+}
+
+<div class="container py-4">
+
+    <h2 class="fw-bold mb-4">Отклики</h2>
+
+    @if (Model.Count == 0)
+    {
+        <div class="alert alert-light border shadow-sm">
+            На ваши вакансии пока нет откликов.
+        </div>
+    }
+    else
+    {
+        @foreach (var item in Model)
+        {
+            <div class="card shadow-sm border-0 rounded-4 mb-4">
+                <div class="card-body p-4">
+
+                    <h4 class="fw-bold mb-2">
+                        <a asp-controller="Company" asp-action="Details" asp-route-id="@item.Vacancy.Id" class="text-decoration-none">
+                            @item.Vacancy.Title
+                        </a>
+                    </h4>
+                    
+                    <p class="text-muted mb-4">
+                        Откликов: @item.Responses.Count
+                    </p>
+
+                    @foreach (var response in item.Responses)
+                    {
+                        <div class="border rounded-3 p-3 mb-3">
+
+                            <h5 class="mb-2">
+                                @response.Resume?.Title
+                            </h5>
+
+                            <p class="mb-3">
+                                <strong>Соискатель:</strong>
+                                @(response.User?.UserName ?? response.User?.Email)
+                            </p>
+
+                            <a asp-controller="Resume" asp-action="PublicDetails" asp-route-id="@response.ResumeId" class="btn btn-outline-secondary btn-sm">
+                                Открыть резюме
+                            </a>
+
+                            <a asp-controller="Chat" asp-action="Index" asp-route-id="@response.Id" asp-route-companyId="@response.CompanyId" class="btn btn-primary btn-sm">
+                                Перейти в чат
+                            </a>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+        }
+    }
+
+</div>

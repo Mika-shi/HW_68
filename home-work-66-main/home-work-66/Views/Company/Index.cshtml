@@ -1,0 +1,185 @@
+@model home_work_66.Models.User
+
+@{
+    ViewBag.Title = "Профиль компании";
+    Layout = "_Layout";
+}
+
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-body" id="modal">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="position-relative me-4">
+                            <img src="@Model.AvatarUrl"
+                                 alt="Аватар компании"
+                                 class="rounded-circle img-thumbnail object-fit-cover shadow-sm"
+                                 style="width: 100px; height: 100px;"
+                                 id="userAvatar" />
+                            @if (ViewBag.IsOwner == true)
+                            {
+                                <a asp-controller="Company" asp-action="EditProfile"
+                                   class="btn btn-sm btn-dark rounded-circle position-absolute bottom-0 end-0 shadow-sm d-flex align-items-center justify-content-center"
+                                   style="width: 32px; height: 32px;"
+                                   data-bs-toggle="modal" data-bs-target="#exampleModal"
+                                   title="Редактировать профиль" id="editLink">
+                                    <i class="bi bi-pencil-fill text-white" style="font-size: 0.8rem;"></i>
+                                </a>
+                            }
+                        </div>
+                        <div>
+                            <h3 class="fw-bold mb-1" id="companyName">@(Model.CompanyName ?? Model.UserName)</h3>
+                            <p class="text-muted mb-0">
+                                Email: <span id="userEmail">@Model.Email</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+   <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="fw-bold mb-0">@(ViewBag.IsOwner == true ? "Мои вакансии" : "Вакансии")</h4>
+                @if (ViewBag.IsOwner == true)
+                {
+                    <button class="btn btn-primary btn-sm rounded-pill px-3" id="createVacancyBtn" data-bs-toggle="modal" data-bs-target="#exampleModal">
+                        <i class="bi bi-plus-lg me-1"></i> Создать вакансию
+                    </button>
+                }
+            </div>
+            <div id="vacanciesContainer" class="row g-3">
+            </div>
+        </div>
+    </div>
+    </div>
+
+
+@section Scripts {
+<partial name="_ValidationScriptsPartial" />
+<script>
+    $(document).on('click', '#editLink', function (e) {
+        e.preventDefault();
+        $('#modal').load('@Url.Action("EditProfile", "Company")', function () {
+            $.validator.unobtrusive.parse('#editProfileModal');
+        });
+    });
+
+    $(document).on('submit', '#editProfileModal', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        let formData = new FormData(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (result) {
+                if (result.success) {
+                    $('#userAvatar').attr('src', result.img);
+                    $('#companyName').text(result.name);
+                    $('#userEmail').text(result.email);
+                    $('#exampleModal').modal('hide');
+                } else {
+                    alert(result.message);
+                }
+            }
+        });
+    });
+
+    function loadVacancies() {
+        $.get('@Url.Action("GetCompanyVacancies", "Company")?companyId=@Model.Id', function (data) {
+            $('#vacanciesContainer').html(data);
+        });
+    }
+
+    $(document).ready(function () {
+        loadVacancies();
+    });
+
+    $(document).on('click', '#createVacancyBtn', function (e) {
+        e.preventDefault();
+        $('#modal').load('@Url.Action("CreateVacancy", "Company")', function () {
+            $.validator.unobtrusive.parse('#createVacancyForm');
+        });
+    });
+
+    $(document).on('submit', '#createVacancyForm', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            success: function (response) {
+                if (response.success) {
+                    $('#exampleModal').modal('hide');
+                    loadVacancies();
+                } else {
+                    alert(response.message);
+                    $.validator.unobtrusive.parse('#createVacancyForm');
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '.edit-vacancy-btn', function (e) {
+        e.preventDefault();
+        let vacancyId = $(this).data('id');
+        $('#modal').load('@Url.Action("EditVacancy", "Company")?id=' + vacancyId, function () {
+            $.validator.unobtrusive.parse('#editVacancyForm');
+        });
+    });
+
+    $(document).on('submit', '#editVacancyForm', function (e) {
+        e.preventDefault();
+        let form = $(this);
+        $.ajax({
+            url: form.attr('action'),
+            type: 'POST',
+            data: form.serialize(),
+            success: function (response) {
+                if (response.success) {
+                    $('#exampleModal').modal('hide');
+                    loadVacancies();
+                } else {
+                    alert(response.message);
+                    $.validator.unobtrusive.parse('#editVacancyForm');
+                }
+            }
+        });
+    });
+
+    $(document).on('click', '.refresh-vacancy-btn', function (e) {
+        e.preventDefault();
+        let vacancyId = $(this).data('id');
+        $.post('@Url.Action("UpdateVacancy", "Company")', { id: vacancyId }, function (res) {
+            if (res.success) {
+                loadVacancies();
+            }
+        });
+    });
+
+    $(document).on('click', '.toggle-publish-btn', function (e) {
+        e.preventDefault();
+        let vacancyId = $(this).data('id');
+        $.post('@Url.Action("TogglePublish", "Company")', { id: vacancyId }, function (res) {
+            if (res.success) {
+                loadVacancies();
+            }
+        });
+    });
+</script>
+}

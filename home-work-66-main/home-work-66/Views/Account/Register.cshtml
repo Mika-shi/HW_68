@@ -1,0 +1,157 @@
+@model home_work_66.ViewModels.RegisterViewModel
+@{
+    ViewData["Title"] = "Регистрация";
+}
+
+<div class="container py-5">
+    <div class="row justify-content-center align-items-center">
+        <div class="col-12 col-sm-11 col-md-8 col-lg-6 col-xl-5">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-body p-4 p-sm-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 60px; height: 60px;">
+                            <i class="bi bi-person-plus fs-3"></i>
+                        </div>
+                        <h3 class="fw-bold mb-1">Создать аккаунт</h3>
+                        <p class="text-muted small mb-0">
+                            Заполните данные для регистрации в системе
+                        </p>
+                    </div>
+                    <form asp-controller="Account" asp-action="Register" method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3 text-center"></div>
+                        <div class="mb-3 p-3 bg-light rounded-3 border">
+                            <label class="form-label fw-semibold small text-secondary d-block mb-2">Тип аккаунта</label>
+                            <div class="form-check m-0">
+                                <input asp-for="IsCompany" class="form-check-input" />
+                                <label asp-for="IsCompany" class="form-check-label fw-semibold text-dark">
+                                    Я представляю компанию
+                                </label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="UserName" class="form-label fw-semibold small" id="userNameLabel">Имя пользователя</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-person"></i>
+                                </span>
+                                <input asp-for="UserName" class="form-control bg-light border-start-0 ps-0" id="UserNameInput" placeholder="Имя пользователя" />
+                            </div>
+                            <span asp-validation-for="UserName" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Email" class="form-label fw-semibold small"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-envelope"></i>
+                                </span>
+                                <input asp-for="Email" class="form-control bg-light border-start-0 ps-0" placeholder="example@MailAddress.com" />
+                            </div>
+                            <span asp-validation-for="Email" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="PhoneNumber" class="form-label fw-semibold small"></label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-telephone"></i>
+                                </span>
+                                <input asp-for="PhoneNumber" class="form-control bg-light border-start-0 ps-0" placeholder="+996 XXX XXX XXX" />
+                            </div>
+                            <span asp-validation-for="PhoneNumber" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Avatar" class="form-label fw-semibold small"></label>
+                            <input asp-for="Avatar" class="form-control bg-light" accept="image/*" />
+                            <span asp-validation-for="Avatar" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <div class="mb-3">
+                            <label asp-for="Password" class="form-label fw-semibold small"></label>
+                            <div class="input-group position-relative">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-lock"></i>
+                                </span>
+                                <input asp-for="Password"
+                                       type="password"
+                                       id="password"
+                                       class="form-control bg-light border-start-0 ps-0 pe-5"
+                                       placeholder="Придумайте пароль">
+                                <button type="button"
+                                        class="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent text-secondary z-3 me-1 shadow-none"
+                                        onclick="togglePassword(this, 'password')"
+                                        aria-label="Показать пароль">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="Password" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <div class="mb-4">
+                            <label asp-for="ConfirmPassword" class="form-label fw-semibold small"></label>
+                            <div class="input-group position-relative">
+                                <span class="input-group-text bg-light border-end-0 text-muted">
+                                    <i class="bi bi-lock-fill"></i>
+                                </span>
+                                <input asp-for="ConfirmPassword"
+                                       type="password"
+                                       id="confirmPassword"
+                                       class="form-control bg-light border-start-0 ps-0 pe-5"
+                                       placeholder="Повторите пароль">
+                                <button type="button"
+                                        class="btn position-absolute top-50 end-0 translate-middle-y border-0 bg-transparent text-secondary z-3 me-1 shadow-none"
+                                        onclick="togglePassword(this, 'confirmPassword')"
+                                        aria-label="Показать пароль">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small d-block mt-1"></span>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 rounded-3 fw-semibold shadow-sm">
+                            Зарегистрироваться
+                        </button>
+                    </form>
+                    <div class="text-center mt-4 pt-3 border-top">
+                        <p class="small text-muted mb-0">
+                            Уже есть аккаунт? 
+                            <a asp-controller="Account" asp-action="Login" class="fw-semibold text-primary text-decoration-none">Войти</a>
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        function togglePassword(button, inputId) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector("i");
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("bi-eye");
+                icon.classList.add("bi-eye-slash");
+                button.setAttribute("aria-label", "Скрыть пароль");
+            } else {
+                input.type = "password";
+                icon.classList.remove("bi-eye-slash");
+                icon.classList.add("bi-eye");
+                button.setAttribute("aria-label", "Показать пароль");
+            }
+        }
+        $(function () {
+            function updateRoleLabels() {
+                if ($('#IsCompany').is(':checked')) {
+                    $('#userNameLabel').text('Имя компании');
+                    $('#UserNameInput').attr('placeholder', 'Название компании');
+                } else {
+                    $('#userNameLabel').text('Имя пользователя');
+                    $('#UserNameInput').attr('placeholder', 'Имя пользователя');
+                }
+            }
+            $('#IsCompany').on('change', updateRoleLabels);
+            updateRoleLabels();
+        });
+    </script>
+}

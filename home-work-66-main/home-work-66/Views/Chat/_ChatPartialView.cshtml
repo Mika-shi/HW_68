@@ -1,0 +1,48 @@
+@model List<home_work_66.Models.Message>
+@if (Model != null && Model.Any())
+{
+    <div class="d-flex flex-column gap-3">
+        @foreach (var msg in Model)
+        {
+            bool isMe = msg.UserId == ViewBag.UserId; 
+            <div class="d-flex w-100 @(isMe ? "justify-content-end" : "justify-content-start") comment">
+                <div style="max-width: 65%;">
+                    <div class="d-flex align-items-center mb-1 @(isMe ? "ms-auto justify-content-end" : "")" style="width: fit-content;">
+                        @if (isMe)
+                        {
+                            <span class="small text-muted me-2" style="font-size: 0.75rem;">
+                                @msg.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            </span>
+                            <span class="small fw-bold me-2">Вы</span>
+                            
+                            <img src="@(string.IsNullOrEmpty(msg.User?.AvatarUrl) ? "/uploads/avatars/default.jpg" : msg.User.AvatarUrl)" class="rounded-circle object-fit-cover" style="width: 36px; height: 36px;" />
+                            
+                        }
+                        else
+                        {
+                            <img src="@(string.IsNullOrEmpty(msg.User?.AvatarUrl) ? "/uploads/avatars/default.jpg" : msg.User.AvatarUrl)" class="rounded-circle object-fit-cover me-2" style="width: 36px; height: 36px;" />
+                            <a asp-controller="User" asp-action="Index" asp-route-id="@msg.UserId" class="small fw-bold me-2 text-decoration-none text-dark">
+                                @(msg.User?.UserName ?? "Пользователь")
+                            </a>
+                            <span class="small text-muted" style="font-size: 0.75rem;">
+                                @msg.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            </span>
+                        }
+                    </div>
+                    <div class="p-3 rounded-4 shadow-sm @(isMe ? "bg-primary text-white" : "bg-white text-dark")">
+                        <div class="word-break">
+                            @msg.Content
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        }
+    </div>
+}
+else
+{
+    <div class="text-center text-muted my-5">
+        <p>Нет сообщений. Напишите первое приветствие!</p>
+    </div>
+}

@@ -1,0 +1,111 @@
+.account-page {
+    background-color: #f7f8fa;
+    min-height: 100vh;
+    padding: 50px 15px;
+}
+
+.account-card {
+    background-color: #ffffff;
+    border: 1px solid #e8eaed;
+    border-radius: 16px;
+    padding: 36px;
+}
+
+.account-title {
+    color: #202124;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+}
+
+.account-description {
+    color: #777e87;
+    font-size: 14px;
+}
+
+.account-card .form-label {
+    color: #353a40;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.account-card .form-control,
+.account-card .form-select {
+    min-height: 46px;
+    border: 1px solid #dfe3e8;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+.account-card .form-control:focus,
+.account-card .form-select:focus {
+    border-color: #6478f5;
+    box-shadow: 0 0 0 3px rgba(100, 120, 245, 0.12);
+}
+
+.account-btn {
+    min-height: 46px;
+    background-color: #4f63df;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+.account-btn:hover {
+    background-color: #4053c9;
+    color: #ffffff;
+}
+
+.account-link {
+    color: #4f63df;
+    text-decoration: none;
+    font-weight: 500;
+}
+.account-link:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 576px) {
+    .account-page {
+        padding: 24px 12px;
+    }
+
+    .account-card {
+        padding: 24px 20px;
+    }
+
+    .account-title {
+        font-size: 24px;
+    }
+
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-wrapper .form-control {
+        padding-right: 48px;
+    }
+
+    .password-toggle {
+        position: absolute;
+        top: 50%;
+        right: 12px;
+        transform: translateY(-50%);
+        border: none;
+        background: transparent;
+        color: #6c757d;
+        cursor: pointer;
+        font-size: 1.15rem;
+        padding: 4px;
+    }
+
+    .password-toggle:hover {
+        color: #0d6efd;
+    }
+
+    .password-toggle:focus-visible {
+        outline: 2px solid #0d6efd;
+        border-radius: 4px;
+    }
+}

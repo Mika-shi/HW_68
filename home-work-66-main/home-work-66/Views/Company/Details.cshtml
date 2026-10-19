@@ -1,0 +1,104 @@
+@model home_work_66.Models.Vacancy
+
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="container py-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-1">@Model.Title</h2>
+            <p class="text-muted mb-0"><strong>Категория:</strong> @Model.Category?.Name</p>
+        </div>
+
+        <a asp-controller="Main" asp-action="Index" class="btn btn-secondary">
+            Назад
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">Основная информация</h4>
+
+            <p class="mb-2"><strong>Заработная плата:</strong> @Model.Salary.ToString("N0") сом</p>
+            <p class="mb-2"><strong>Компания:</strong> @(Model.Company?.CompanyName ?? Model.Company?.UserName)</p>
+            <p class="mb-2"><strong>Требуемый опыт работы:</strong> от @Model.ExperienceFrom до @Model.ExperienceTo лет</p>
+
+            @if (!string.IsNullOrEmpty(Model.Company?.PhoneNumber))
+            {
+                <p class="mb-2"><strong>Телефон:</strong> @Model.Company.PhoneNumber</p>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Company?.Email))
+            {
+                <p class="mb-2"><strong>Email:</strong> @Model.Company.Email</p>
+            }
+
+            <p class="text-muted small mb-0 mt-3">
+                <i class="bi bi-clock-history me-1"></i>Обновлено: @Model.UpdatedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+            </p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">Описание вакансии</h4>
+            <p class="mb-0" style="white-space: pre-line;">@Model.Description</p>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body">
+            <h4 class="mb-3">Требования</h4>
+            <p class="mb-0" style="white-space: pre-line;">@(string.IsNullOrWhiteSpace(Model.Requirements) ? "Требования не указаны." : Model.Requirements)</p>
+        </div>
+    </div>
+
+    <div class="d-flex gap-3 mt-4">
+        @if (User.Identity != null && User.Identity.IsAuthenticated)
+        {
+            @if (User.IsInRole("user"))
+            {
+                <button type="button" class="btn btn-primary btn-lg px-4" id="applyBtn" onclick="applyToVacancy()">
+                    <i class="bi bi-send me-1"></i> Откликнуться
+                </button>
+            }
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-4">
+                Войдите, чтобы откликнуться
+            </a>
+        }
+    </div>
+
+</div>
+
+<div class="modal fade" id="respondModal" tabindex="-1" aria-labelledby="respondModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="respondModalLabel">Отклик на вакансию</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+            </div>
+            <div id="respondModalContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function applyToVacancy() {
+            let modalEl = $('#respondModal')
+            let modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+
+            $('#respondModalContent').load('@Url.Action("Respond", "User")?vacancyId=@Model.Id&companyId=@Model.CompanyId');
+        }
+    </script>
+}

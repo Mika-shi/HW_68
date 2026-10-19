@@ -1,0 +1,158 @@
+@model home_work_66.ViewModels.VacancyIndexViewModel
+
+<form asp-controller="Company" asp-action="GetVacancies" method="get" class="row g-2 mb-4">
+    <div class="col-md-5">
+        <input type="text"
+               name="searchString"
+               value="@ViewBag.SearchString"
+               class="form-control"
+               placeholder="Введите название вакансии..." />
+    </div>
+
+    <div class="col-md-4">
+        <select name="categoryId" class="form-select">
+            <option value="">Все категории</option>
+            @if (ViewBag.Categories != null)
+            {
+                foreach (var category in ViewBag.Categories)
+                {
+                    <option value="@category.Id"
+                            selected="@(ViewBag.CategoryId != null &&
+                                      (int)ViewBag.CategoryId == category.Id)">
+                        @category.Name
+                    </option>
+                }
+            }
+        </select>
+    </div>
+
+    <div class="col-md-3">
+        <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search"></i> Найти
+        </button>
+    </div>
+</form>
+<div class="d-flex flex-wrap gap-2 mb-3">
+    <a asp-controller="Company"
+       asp-action="GetVacancies"
+       asp-route-searchString="@ViewBag.SearchString"
+       asp-route-categoryId="@ViewBag.CategoryId"
+       asp-route-sortOrder="@ViewBag.SalarySort"
+       class="btn btn-outline-primary">
+        Зарплата ↕️
+    </a>
+    <a asp-controller="Company"
+       asp-action="GetVacancies"
+       asp-route-searchString="@ViewBag.SearchString"
+       asp-route-categoryId="@ViewBag.CategoryId"
+       asp-route-sortOrder="@ViewBag.TitleSort"
+       class="btn btn-outline-secondary">
+        Название вакансии ↕️
+    </a>
+</div>
+<div class="col-12">
+    @if (Model != null && Model.Vacancies.Any())
+    {
+        foreach (var vacancy in Model.Vacancies)
+        {
+            <div class="card shadow-sm border-0 rounded-4 mb-3 w-100 position-relative" style="cursor: pointer;">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1">
+                                <a asp-controller="Company"
+                                   asp-action="Details"
+                                   asp-route-id="@vacancy.Id"
+                                   class="stretched-link text-decoration-none text-dark">
+                                    @vacancy.Title
+                                </a>
+                            </h4>
+                            @if (vacancy.Category != null)
+                            {
+                                <span class="badge bg-light text-dark border position-relative" style="z-index: 2;">@vacancy.Category.Name</span>
+                            }
+                        </div>
+                        <span class="fs-5 fw-bold text-primary">
+                            @vacancy.Salary.ToString("N0") сом
+                        </span>
+                    </div>
+
+                    <p class="text-muted small mb-2">
+                        <i class="bi bi-briefcase me-1"></i>Опыт работы: от @vacancy.ExperienceFrom до @vacancy.ExperienceTo лет
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                        <span class="fw-semibold position-relative" style="z-index: 2;">
+                            <i class="bi bi-building me-1 text-secondary"></i>
+                            <a asp-controller="Company"
+                               asp-action="Index"
+                               asp-route-id="@vacancy.CompanyId"
+                               class="text-decoration-none text-primary">
+                                @(vacancy.Company?.CompanyName ?? vacancy.Company?.UserName)
+                            </a>
+                        </span>
+                        <small class="text-muted">
+                            <i class="bi bi-clock-history me-1"></i>
+                            Обновлено: @vacancy.UpdatedAt?.ToLocalTime().ToString("dd.MM.yyyy")
+                        </small>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="alert alert-light text-center py-5 border shadow-sm rounded-4">
+            <i class="bi bi-briefcase fs-1 text-muted d-block mb-2"></i>
+            <h5 class="text-muted mb-0">Опубликованных вакансий пока нет.</h5>
+        </div>
+    }
+</div>
+ <div class="d-flex justify-content-center align-items-center gap-2 mt-4">
+ @if (Model.PageViewModel.HasPreviousPage)
+ {
+     <a asp-controller="Company"
+        asp-action="GetVacancies"
+        asp-route-page="@(Model.PageViewModel.PageNumber - 1)"
+        asp-route-searchString="@ViewBag.SearchString"
+        asp-route-categoryId="@ViewBag.CategoryId"
+        asp-route-sortOrder="@ViewBag.SortOrder"
+        class="btn btn-outline-primary">
+         Назад
+     </a>
+                                        }
+
+@for (int i = 1; i <= Model.PageViewModel.TotalPages; i++)
+{
+    if (i == Model.PageViewModel.PageNumber)
+    {
+        <span class="btn btn-primary">@i</span>
+    }
+    else
+    {
+        <a asp-controller="Company"
+           asp-action="GetVacancies"
+           asp-route-page="@i"
+           asp-route-searchString="@ViewBag.SearchString"
+           asp-route-categoryId="@ViewBag.CategoryId"
+           asp-route-sortOrder="@ViewBag.SortOrder"
+           class="btn btn-outline-primary">
+            @i
+        </a>
+    }
+}
+
+@if (Model.PageViewModel.HasNextPage)
+{
+    <a asp-controller="Company"
+       asp-action="GetVacancies"
+       asp-route-page="@(Model.PageViewModel.PageNumber + 1)"
+       asp-route-searchString="@ViewBag.SearchString"
+       asp-route-categoryId="@ViewBag.CategoryId"
+       asp-route-sortOrder="@ViewBag.SortOrder"
+       class="btn btn-outline-primary">
+        Далее
+    </a>
+}
+
+</div>

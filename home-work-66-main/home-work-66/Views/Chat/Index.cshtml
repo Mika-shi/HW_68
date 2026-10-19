@@ -1,0 +1,105 @@
+@model home_work_66.ViewModels.ChatPageViewModel
+
+@{
+    ViewBag.Title = "Чат";
+    Layout = "_Layout";
+    int currentChatId = Model.Chat?.Id ?? (int)(ViewBag.ChatId ?? 0);
+}
+
+<div class="card border shadow-sm rounded-4 overflow-hidden d-flex flex-column" style="height: calc(100vh - 120px);">
+    @if (Model.Chat != null)
+    {
+        <div class="card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
+            <div>
+                <div class="fw-bold fs-6">
+                    <span class="text-muted fw-normal">Вакансия:</span> 
+                    <a asp-controller="Company" asp-action="Details" asp-route-id="@Model.Chat.VacancyId" class="text-dark text-decoration-none">
+                        @(Model.Chat.Vacancy?.Title ?? "Вакансия")
+                    </a>
+                </div>
+                <div class="small mt-1">
+                    <span class="text-muted">Прикрепленное резюме:</span> 
+                    <a asp-controller="Resume" asp-action="PublicDetails" asp-route-id="@Model.Chat.ResumeId" target="_blank" class="fw-semibold text-primary text-decoration-none">
+                        @(Model.Chat.Resume?.Title ?? "Резюме") <i class="bi bi-box-arrow-up-right small"></i>
+                    </a>
+                </div>
+            </div>
+            <a asp-controller="Main" asp-action="Index" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                Назад
+            </a>
+        </div>
+    }
+
+    <div id="chatScrollContainer" class="card-body p-4 overflow-auto flex-grow-1" style="background-color: #f8f9fa;">
+        @await Html.PartialAsync("_ChatPartialView", Model.Messages)
+    </div>
+
+    <div class="card-footer bg-white border-top p-3 flex-shrink-0">
+        <form id="sendMessageForm" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ChatId" value="@currentChatId" />
+            <span asp-validation-for="CreateForm.Content" class="text-danger small px-2"></span>
+            <div class="d-flex gap-2 w-100">
+                <input asp-for="CreateForm.Content" name="Content" type="text" id="textInput" class="form-control rounded-pill px-3" placeholder="Введите ваше сообщение" autocomplete="off"/>
+                <button type="submit" class="btn btn-dark rounded-pill px-4">Отправить</button>
+            </div>
+            <small id="charCount" class="text-muted">150 символов осталось</small>
+        </form>
+    </div>
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function scrollToBottom() {
+            let container = $("#chatScrollContainer");
+            if (container.length) {
+                container[0].scrollTop = container[0].scrollHeight;
+            }
+        }
+        scrollToBottom();
+
+        $(document).on('input', '#textInput', function () {
+            let remaining = 150 - $(this).val().length;
+            if (remaining < 0) {
+                $(this).val($(this).val().substring(0, 150));
+                remaining = 0;
+            }
+            let count = $('#charCount');
+            count.text(remaining + ' символов осталось');
+            if (remaining <= 20) {
+                count.addClass('text-danger').removeClass('text-muted');
+            } else {
+                count.removeClass('text-danger').addClass('text-muted');
+            }
+        });
+
+        setInterval(function () {
+            let oldLength = $('.comment').length;
+            $('#chatScrollContainer').load('@Url.Action("UpdateList", "Chat", new { id = currentChatId })', function () {
+                if (oldLength < $('.comment').length) {
+                    scrollToBottom();
+                }
+            });
+        }, 5000);
+
+        $(document).on('submit', '#sendMessageForm', function (event) {
+            event.preventDefault();
+            let form = $(this);
+            $.post('@Url.Action("SendMessage", "Chat")', form.serialize(), function (data) {
+                if ($(data).find('.word-break').length > 0) {
+                    $('#chatScrollContainer').html(data);
+                    $('#textInput').val('');
+                    $('#charCount').text('150 символов осталось').removeClass('text-danger').addClass('text-muted');
+                    setTimeout(scrollToBottom, 50);
+                } else {
+                    if ($.validator && $.validator.unobtrusive) {
+                        $.validator.unobtrusive.parse('#sendMessageForm');
+                    }
+                }
+            });
+        });
+    </script>
+}
+

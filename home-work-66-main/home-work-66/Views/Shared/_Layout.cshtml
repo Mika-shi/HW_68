@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>@ViewData["Title"] - HeadHunter</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true"/>
+    <link rel="stylesheet" href="~/home_work_66.styles.css" asp-append-version="true"/>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="d-flex flex-column min-vh-100">
+<header>
+    <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3 mx-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary" asp-area="" asp-controller="Main" asp-action="Index">HeadHunter</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                    aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="navbar-collapse collapse d-sm-inline-flex">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    
+                    @if (User.Identity != null && User.Identity.IsAuthenticated)
+                    {
+                        @if (User.IsInRole("admin"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Category" asp-action="Index">Категории</a>
+                            </li>
+                        }
+                        @if (User.IsInRole("user"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="User" asp-action="MyResponses">
+                                    Мои отклики
+                                </a>
+                            </li>
+                        }
+                        @if (User.IsInRole("company"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Resume" asp-action="BrowseByCategory">
+                                    Резюме соискателей 
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-dark" asp-controller="Company" asp-action="MyResponses">
+                                    Отклики
+                                </a>
+                            </li>
+                        }
+                        
+                        <li class="nav-item">
+                            @if (User.IsInRole("company"))
+                            {
+                                <a class="nav-link text-dark fw-semibold" asp-controller="Company" asp-action="Index">Личный кабинет</a>
+                            }
+                            else
+                            {
+                                <a class="nav-link text-dark fw-semibold" asp-controller="User" asp-action="Index">Личный кабинет</a>
+                            }
+                        </li>
+                        <li class="nav-item">
+                            <form asp-controller="Account" asp-action="LogOff" method="post" class="form-inline m-0">
+                                <button type="submit" class="nav-link btn btn-link text-dark">Выйти</button>
+                            </form>
+                        </li>
+                    }
+                    else
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Register">Регистрация</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark" asp-area="" asp-controller="Account" asp-action="Login">Вход</a>
+                        </li>
+                    }
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="flex-fill">
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+</div>
+
+<footer class="border-top footer text-muted py-2 bg-white small">
+    <div class="container">
+       &copy; 2026 - HeadHunter
+    </div>
+</footer>
+
+<script src="~/lib/jquery/dist/jquery.min.js"></script>
+<script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

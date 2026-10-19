@@ -1,0 +1,55 @@
+@{
+    ViewBag.Title = "Главная - HeadHunter";
+    Layout = "_Layout";
+}
+<h1>@(User.IsInRole("company") ? "Резюме" : "Вакансии")</h1>
+<div class="container py-4">
+    <div id="contentContainer" class="row justify-content-center">
+    </div>
+    </div>
+@section Scripts {
+    <script>
+    $(document).ready(function () {
+    const listContainer = $('#contentContainer');
+    function loadVacancies(url) {
+        listContainer.load(url);
+    }
+
+    @if (User.IsInRole("company"))
+    {
+        <text>
+            loadVacancies('@Url.Action("Published", "Resume")');
+        </text>
+    }
+    else
+    {
+        <text>
+            loadVacancies('@Url.Action("GetVacancies", "Company")');
+        </text>
+    }
+    
+    listContainer.on('submit', 'form', function (e) {
+        e.preventDefault();
+
+         const url = $(this).attr('action') + '?' + $(this).serialize();
+         loadVacancies(url);
+    });
+
+    listContainer.on('click', 'a', function (e) {
+         const href = $(this).attr('href');
+
+         if (!href || href.startsWith('#')) {
+             return;
+    }
+
+          const url = new URL(href, window.location.origin);
+
+          if (url.pathname.toLowerCase() === '/company/getvacancies') {
+              e.preventDefault();
+              loadVacancies(url.pathname + url.search);
+          }
+    });
+    
+    });
+    </script>
+}
