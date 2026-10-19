@@ -11,4 +11,14 @@ public interface IHeadHunterService
     Task<List<Category>> GetCategoriesAsync();
     
     Task<List<Vacancy>> GetCompanyVacanciesAsync(int companyId, bool isOwner);
+    
+    Task<bool> CreateVacancyAsync(CreateVacancyViewModel model, int companyId);
+    
+    Task<CreateVacancyViewModel?> GetVacancyForEditAsync(int id, int companyId);
+    
+    Task<bool> EditVacancyAsync(int id, int companyId, CreateVacancyViewModel model);
+    
+    Task<bool> UpdateVacancyAsync(int id, int companyId);
+    
+    Task<bool> TogglePublishAsync(int id, int companyId);
 }

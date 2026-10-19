@@ -144,26 +144,11 @@ public class CompanyController : Controller
             });
         }
 
-        var user = await _userManager.GetUserAsync(User);
+        User? user = await _userManager.GetUserAsync(User);
         if (user == null)
             return Json(new { success = false, message = "Пользователь не найден" });
 
-        var vacancy = new Vacancy
-        {
-            Title = model.Title,
-            Salary = model.Salary,
-            Description = model.Description,
-            Requirements = model.Requirements,
-            ExperienceFrom = model.ExperienceFrom,
-            ExperienceTo = model.ExperienceTo,
-            CategoryId = model.CategoryId,
-            CompanyId = user.Id,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            IsPublished = false
-        };
-        _context.Vacancies.Add(vacancy);
-        await _context.SaveChangesAsync();
+        await _service.CreateVacancyAsync(model, user.Id);
 
         return Json(new { success = true });
     }
@@ -172,26 +157,19 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> EditVacancy(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
+        User? user = await _userManager.GetUserAsync(User);
+
         if (user == null)
-            return NotFound();
-
-        var vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == user.Id);
-
-        if (vacancy == null)
-            return NotFound();
-
-        var model = new CreateVacancyViewModel
         {
-            Id = vacancy.Id,
-            Title = vacancy.Title,
-            Salary = vacancy.Salary,
-            Description = vacancy.Description,
-            Requirements = vacancy.Requirements,
-            ExperienceFrom = vacancy.ExperienceFrom,
-            ExperienceTo = vacancy.ExperienceTo,
-            CategoryId = vacancy.CategoryId
-        };
+            return NotFound();
+        }
+
+        CreateVacancyViewModel? model = await _service.GetVacancyForEditAsync(id, user.Id);
+
+        if (model == null)
+        {
+            return NotFound();
+        }
 
         ViewBag.Categories = await _context.Categories.ToListAsync();
 
@@ -221,25 +199,20 @@ public class CompanyController : Controller
             });
         }
 
-        var user = await _userManager.GetUserAsync(User);
+        User? user = await _userManager.GetUserAsync(User);
+
         if (user == null)
+        {
             return Json(new { success = false, message = "Пользователь не найден" });
+        }
 
-        var vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == user.Id);
+        bool result = await _service.EditVacancyAsync(id, user.Id, model);
 
-        if (vacancy == null)
+        if (!result)
+        {
             return Json(new { success = false, message = "Вакансия не найдена" });
+        }
 
-        vacancy.Title = model.Title;
-        vacancy.Salary = model.Salary;
-        vacancy.Description = model.Description;
-        vacancy.Requirements = model.Requirements;
-        vacancy.ExperienceFrom = model.ExperienceFrom;
-        vacancy.ExperienceTo = model.ExperienceTo;
-        vacancy.CategoryId = model.CategoryId;
-        vacancy.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
         return Json(new { success = true });
     }
 
@@ -247,17 +220,15 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> UpdateVacancy(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        User? user = await _userManager.GetUserAsync(User);        if (user == null)
             return Json(new { success = false, message = "Пользователь не найден" });
 
-        var vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == user.Id);
+        bool result = await _service.UpdateVacancyAsync(id, user.Id);
 
-        if (vacancy == null)
+        if (!result)
+        {
             return Json(new { success = false, message = "Вакансия не найдена" });
-
-        vacancy.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        }
         return Json(new { success = true });
     }
 
@@ -265,17 +236,16 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> TogglePublish(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
+        User? user = await _userManager.GetUserAsync(User);
         if (user == null)
             return Json(new { success = false, message = "Пользователь не найден" });
 
-        var vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == user.Id);
-        if (vacancy == null)
-            return Json(new { success = false, message = "Вакансия не найдена" });
+        bool result = await _service.TogglePublishAsync(id, user.Id);
 
-        vacancy.IsPublished = !vacancy.IsPublished;
-        vacancy.UpdatedAt = DateTime.UtcNow;
-        await _context.SaveChangesAsync();
+        if (!result)
+        {
+            return Json(new { success = false, message = "Вакансия не найдена" });
+        }
         return Json(new { success = true });
     }
 
