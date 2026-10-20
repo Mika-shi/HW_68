@@ -3,6 +3,7 @@ using home_work_66.Models;
 using home_work_66.ViewModels;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
 
 namespace home_work_66.Services;
 
@@ -11,12 +12,14 @@ public class HeadHunterService : IHeadHunterService
     private readonly HeadHunterContext _context;
     private readonly UserManager<User> _userManager;
     private readonly IWebHostEnvironment _webHostEnvironment;
+    private readonly SignInManager<User> _signInManager;
 
-    public HeadHunterService(HeadHunterContext context, UserManager<User> userManager, IWebHostEnvironment webHostEnvironment)
+    public HeadHunterService(HeadHunterContext context, UserManager<User> userManager, IWebHostEnvironment webHostEnvironment, SignInManager<User> signInManager)
     {
         _context = context;
         _userManager = userManager;
         _webHostEnvironment = webHostEnvironment;
+        _signInManager = signInManager;
     }
 
     public async Task<Vacancy?> GetVacancyByIdAsync(int id)
@@ -775,5 +778,208 @@ public class HeadHunterService : IHeadHunterService
         .Include(c => c.Resume)
         .ToListAsync();
 }
+    
+    public async Task<AccountResult> RegisterAsync(RegisterViewModel model)
+{
+    AccountResult accountResult = new AccountResult();
+
+    User? existingUser = await _userManager.FindByEmailAsync(model.Email);
+
+    if (existingUser != null)
+    {
+        accountResult.Errors.Add("В базе уже существует аккаунт с данным адресом почты");
+    }
+
+    bool hasUpper = model.Password.Any(char.IsUpper);
+    bool hasLower = model.Password.Any(char.IsLower);
+    bool hasDigit = model.Password.Any(char.IsDigit);
+
+    if (!hasUpper || !hasLower || !hasDigit)
+    {
+        accountResult.Errors.Add("Пароль должен содержать в себе 1 букву верхнего регистра, 1 букву нижнего регистра, а также минимум 1 цифру");
+    }
+
+    if (accountResult.Errors.Count > 0)
+    {
+        accountResult.Succeeded = false;
+        return accountResult;
+    }
+
+    string avatarPath = "/default.jpg";
+
+    if (model.Avatar != null)
+    {
+        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
+
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
+        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
+        await model.Avatar.CopyToAsync(fileStream);
+
+        avatarPath = $"/uploads/avatars/{uniqueFileName}";
+    }
+
+    User userToCreate;
+    string roleToAssign;
+
+    if (model.IsCompany)
+    {
+        userToCreate = new User
+        {
+            Email = model.Email,
+            UserName = model.Email,
+            CompanyName = model.UserName,
+            PhoneNumber = model.PhoneNumber,
+            AvatarUrl = avatarPath
+        };
+
+        roleToAssign = "company";
+    }
+    else
+    {
+        userToCreate = new User
+        {
+            Email = model.Email,
+            UserName = model.UserName,
+            PhoneNumber = model.PhoneNumber,
+            AvatarUrl = avatarPath
+        };
+
+        roleToAssign = "user";
+    }
+
+    IdentityResult result = await _userManager.CreateAsync(userToCreate, model.Password);
+
+    if (!result.Succeeded)
+    {
+        accountResult.Succeeded = false;
+
+        foreach (IdentityError error in result.Errors)
+        {
+            accountResult.Errors.Add(error.Description);
+        }
+
+        return accountResult;
+    }
+
+    await _userManager.AddToRoleAsync(userToCreate, roleToAssign);
+    await _signInManager.SignInAsync(userToCreate, isPersistent: false);
+
+    accountResult.Succeeded = true;
+    accountResult.IsCompany = model.IsCompany;
+
+    return accountResult;
+}
+    
+    public async Task<AccountResult> LoginAsync(LoginViewModel model)
+    {
+        User? user = await _userManager.FindByEmailAsync(model.Email);
+
+        if (user == null)
+        {
+            return new AccountResult
+            {
+                Succeeded = false,
+                Message = "Неправильный логин и (или) пароль"
+            };
+        }
+
+        Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.PasswordSignInAsync(
+            user,
+            model.Password,
+            model.RememberMe,
+            false
+        );
+
+        if (!result.Succeeded)
+        {
+            return new AccountResult
+            {
+                Succeeded = false,
+                Message = "Неправильный логин и (или) пароль"
+            };
+        }
+
+        bool isCompany = await _userManager.IsInRoleAsync(user, "company");
+
+        return new AccountResult
+        {
+            Succeeded = true,
+            IsCompany = isCompany
+        };
+    }
+    
+    public async Task LogOffAsync()
+    {
+        await _signInManager.SignOutAsync();
+    }
+    
+    public async Task<bool> IsEmailAvailableAsync(string email, int? id)
+    {
+        if (id.HasValue)
+        {
+            return !await _context.Users.AnyAsync(u => u.Email == email && u.Id != id.Value);
+        }
+
+        return !await _context.Users.AnyAsync(u => u.Email == email);
+    }
+
+    public bool IsPasswordValid(string password)
+    {
+        return password.Any(char.IsUpper) &&
+               password.Any(char.IsLower) &&
+               password.Any(char.IsDigit);
+    }
+    
+    public async Task<Category?> CreateCategoryAsync(string name)
+    {
+        string trimmedName = name.Trim();
+
+        bool exists = await _context.Categories
+            .AnyAsync(c => c.Name.ToLower() == trimmedName.ToLower());
+
+        if (exists)
+        {
+            return null;
+        }
+
+        Category category = new Category
+        {
+            Name = trimmedName
+        };
+
+        _context.Categories.Add(category);
+        await _context.SaveChangesAsync();
+
+        return category;
+    }
+
+    public async Task<string?> DeleteCategoryAsync(int id)
+    {
+        Category? category = await _context.Categories.FindAsync(id);
+
+        if (category == null)
+        {
+            return "Категория не найдена";
+        }
+
+        bool hasResumes = await _context.Resumes.AnyAsync(r => r.CategoryId == id);
+
+        if (hasResumes)
+        {
+            return "Нельзя удалить категорию, к которой привязаны резюме";
+        }
+
+        _context.Categories.Remove(category);
+        await _context.SaveChangesAsync();
+
+        return null;
+    }
     
 }

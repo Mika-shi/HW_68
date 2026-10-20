@@ -93,4 +93,18 @@ public interface IHeadHunterService
     Task<List<Resume>> GetUserResumesAsync(int userId);
     
     Task<List<Chat>> GetUserResponsesAsync(int userId);
+    
+    Task<AccountResult> RegisterAsync(RegisterViewModel model);
+    
+    Task<AccountResult> LoginAsync(LoginViewModel model);
+    
+    Task LogOffAsync();
+    
+    Task<bool> IsEmailAvailableAsync(string email, int? id);
+    
+    bool IsPasswordValid(string password);
+    
+    Task<Category?> CreateCategoryAsync(string name);
+    
+    Task<string?> DeleteCategoryAsync(int id);
 }
