@@ -30,4 +30,49 @@ public interface IHeadHunterService
     
     Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model);
     
+    Task<List<Resume>> GetResumesAsync(int userId, bool isOwner);
+    
+    Task<int> CreateResumeAsync(Resume resume, int userId);
+    
+    Task<Resume?> GetResumeForEditAsync(int id, int userId);
+    
+    Task<bool> EditResumeAsync(Resume model, int userId);
+    
+    Task<bool> UpdateResumeDateAsync(int id, int userId);
+
+    Task AddWorkExperienceAsync(WorkExperience workExperience);
+    
+    Task<WorkExperience?> GetWorkExperienceAsync(int id, int userId);
+    
+    Task UpdateWorkExperienceAsync(WorkExperience workExperience);
+    
+    Task<int?> DeleteWorkExperienceAsync(int id, int userId);
+    
+    Task AddEducationAsync(Education education);
+    
+    Task<Education?> GetEducationAsync(int id, int userId);
+    
+    Task UpdateEducationAsync(Education education);
+    
+    Task<int?> DeleteEducationAsync(int id, int userId);
+
+    Task AddCourseAsync(Course course);
+    
+    Task<Course?> GetCourseAsync(int id, int userId);
+    
+    Task UpdateCourseAsync(Course course);
+    
+    Task<int?> DeleteCourseAsync(int id, int userId);
+
+    Task<Resume?> GetResumeDetailsAsync(int id, int userId);
+    
+    Task<bool> ToggleResumePublicationAsync(int id, int userId);
+    
+    Task<List<Resume>> GetPublishedResumesAsync();
+    
+    Task<Resume?> GetPublicResumeDetailsAsync(int id);
+    
+    Task<List<Category>> GetCategoriesOrderedAsync();
+    
+    Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId);
 }

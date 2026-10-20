@@ -308,6 +308,262 @@ public class HeadHunterService : IHeadHunterService
             Email = user.Email
         };
     }
+    
+    public async Task<List<Resume>> GetResumesAsync(int userId, bool isOwner)
+{
+    var query = _context.Resumes
+        .Include(r => r.Category)
+        .Where(r => r.UserId == userId);
 
+    if (!isOwner)
+    {
+        query = query.Where(r => r.IsPublished);
+    }
+
+    return await query
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
+
+    public async Task<int> CreateResumeAsync(Resume resume, int userId)
+{
+    resume.UserId = userId;
+    resume.UpdatedAt = DateTime.UtcNow;
+    resume.IsPublished = false;
+
+    _context.Resumes.Add(resume);
+    await _context.SaveChangesAsync();
+
+    return resume.Id;
+}
+
+    public async Task<Resume?> GetResumeForEditAsync(int id, int userId)
+{
+    return await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+}
+
+    public async Task<bool> EditResumeAsync(Resume model, int userId)
+{
+    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == model.Id && r.UserId == userId);
+
+    if (resume == null)
+    {
+        return false;
+    }
+
+    resume.Title = model.Title;
+    resume.CategoryId = model.CategoryId;
+    resume.Salary = model.Salary;
+
+    resume.Email = model.Email;
+    resume.PhoneNumber = model.PhoneNumber;
+    resume.Telegram = model.Telegram;
+    resume.Facebook = model.Facebook;
+    resume.LinkedIn = model.LinkedIn;
+
+    await _context.SaveChangesAsync();
+
+    return true;
+}
+
+    public async Task<bool> UpdateResumeDateAsync(int id, int userId)
+{
+    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+
+    if (resume == null)
+    {
+        return false;
+    }
+
+    resume.UpdatedAt = DateTime.UtcNow;
+
+    await _context.SaveChangesAsync();
+
+    return true;
+}
+
+    public async Task AddWorkExperienceAsync(WorkExperience workExperience)
+{
+    _context.WorkExperiences.Add(workExperience);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<WorkExperience?> GetWorkExperienceAsync(int id, int userId)
+{
+    return await _context.WorkExperiences
+        .Include(w => w.Resume)
+        .FirstOrDefaultAsync(w => w.Id == id && w.Resume!.UserId == userId);
+}
+
+    public async Task UpdateWorkExperienceAsync(WorkExperience workExperience)
+{
+    _context.WorkExperiences.Update(workExperience);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<int?> DeleteWorkExperienceAsync(int id, int userId)
+{
+    WorkExperience? workExperience = await _context.WorkExperiences
+        .Include(w => w.Resume)
+        .FirstOrDefaultAsync(w => w.Id == id && w.Resume!.UserId == userId);
+
+    if (workExperience == null)
+    {
+        return null;
+    }
+
+    int resumeId = workExperience.ResumeId;
+
+    _context.WorkExperiences.Remove(workExperience);
+    await _context.SaveChangesAsync();
+
+    return resumeId;
+}
+
+    public async Task AddEducationAsync(Education education)
+{
+    _context.Educations.Add(education);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<Education?> GetEducationAsync(int id, int userId)
+{
+    return await _context.Educations
+        .Include(e => e.Resume)
+        .FirstOrDefaultAsync(e => e.Id == id && e.Resume!.UserId == userId);
+}
+
+    public async Task UpdateEducationAsync(Education education)
+{
+    _context.Educations.Update(education);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<int?> DeleteEducationAsync(int id, int userId)
+{
+    Education? education = await _context.Educations
+        .Include(e => e.Resume)
+        .FirstOrDefaultAsync(e => e.Id == id && e.Resume!.UserId == userId);
+
+    if (education == null)
+    {
+        return null;
+    }
+
+    int resumeId = education.ResumeId;
+
+    _context.Educations.Remove(education);
+    await _context.SaveChangesAsync();
+
+    return resumeId;
+}
+
+    public async Task AddCourseAsync(Course course)
+{
+    _context.Courses.Add(course);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<Course?> GetCourseAsync(int id, int userId)
+{
+    return await _context.Courses
+        .Include(c => c.Resume)
+        .FirstOrDefaultAsync(c => c.Id == id && c.Resume!.UserId == userId);
+}
+
+    public async Task UpdateCourseAsync(Course course)
+{
+    _context.Courses.Update(course);
+    await _context.SaveChangesAsync();
+}
+
+    public async Task<int?> DeleteCourseAsync(int id, int userId)
+{
+    Course? course = await _context.Courses
+        .Include(c => c.Resume)
+        .FirstOrDefaultAsync(c => c.Id == id && c.Resume!.UserId == userId);
+
+    if (course == null)
+    {
+        return null;
+    }
+
+    int resumeId = course.ResumeId;
+
+    _context.Courses.Remove(course);
+    await _context.SaveChangesAsync();
+
+    return resumeId;
+}
+
+    public async Task<Resume?> GetResumeDetailsAsync(int id, int userId)
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.WorkExperiences)
+        .Include(r => r.Educations)
+        .Include(r => r.Courses)
+        .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+}
+
+    public async Task<bool> ToggleResumePublicationAsync(int id, int userId)
+{
+    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+
+    if (resume == null)
+    {
+        return false;
+    }
+
+    resume.IsPublished = !resume.IsPublished;
+
+    await _context.SaveChangesAsync();
+
+    return true;
+}
+
+    public async Task<List<Resume>> GetPublishedResumesAsync()
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.User)
+        .Where(r => r.IsPublished)
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
+
+    public async Task<Resume?> GetPublicResumeDetailsAsync(int id)
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.WorkExperiences)
+        .Include(r => r.Educations)
+        .Include(r => r.Courses)
+        .FirstOrDefaultAsync(r => r.Id == id && r.IsPublished);
+}
+
+    public async Task<List<Category>> GetCategoriesOrderedAsync()
+{
+    return await _context.Categories
+        .OrderBy(c => c.Name)
+        .ToListAsync();
+}
+
+    public async Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId)
+{
+    var query = _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.User)
+        .Where(r => r.IsPublished);
+
+    if (categoryId.HasValue)
+    {
+        query = query.Where(r => r.CategoryId == categoryId.Value);
+    }
+
+    return await query
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
     
 }
