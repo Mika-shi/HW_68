@@ -566,4 +566,127 @@ public class HeadHunterService : IHeadHunterService
         .ToListAsync();
 }
     
+    public async Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId)
+{
+    Chat? existingChat = await _context.Chats
+        .FirstOrDefaultAsync(c => c.UserId == userId && c.VacancyId == model.VacancyId);
+
+    if (existingChat != null)
+    {
+        return existingChat;
+    }
+
+    Chat chat = new Chat
+    {
+        UserId = userId,
+        CompanyId = model.CompanyId,
+        VacancyId = model.VacancyId,
+        ResumeId = model.ResumeId!.Value
+    };
+
+    await _context.Chats.AddAsync(chat);
+    await _context.SaveChangesAsync();
+
+    return chat;
+}
+
+    public async Task<ChatPageViewModel?> GetChatPageAsync(int chatId)
+{
+    Chat? chat = await _context.Chats
+        .Include(x => x.Vacancy)
+        .Include(x => x.Resume)
+        .Include(x => x.User)
+        .Include(x => x.Company)
+        .FirstOrDefaultAsync(x => x.Id == chatId);
+
+    if (chat == null)
+    {
+        return null;
+    }
+
+    List<Message> messages = await _context.Messages
+        .Where(x => x.ChatId == chatId)
+        .Include(x => x.User)
+        .OrderBy(x => x.CreatedAt)
+        .ToListAsync();
+
+    return new ChatPageViewModel
+    {
+        Chat = chat,
+        Messages = messages
+    };
+}
+
+    public async Task<List<Message>> GetMessagesAsync(int? chatId)
+{
+    return await _context.Messages
+        .Where(x => x.ChatId == chatId)
+        .Include(x => x.User)
+        .OrderBy(x => x.CreatedAt)
+        .ToListAsync();
+}
+
+    public async Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId)
+{
+    Message message = new Message
+    {
+        Content = model.Content,
+        UserId = userId,
+        CreatedAt = DateTime.UtcNow,
+        ChatId = model.ChatId
+    };
+
+    await _context.Messages.AddAsync(message);
+    await _context.SaveChangesAsync();
+
+    return await _context.Messages
+        .Where(x => x.ChatId == model.ChatId)
+        .Include(x => x.User)
+        .OrderBy(x => x.CreatedAt)
+        .ToListAsync();
+}
+
+    public async Task<Chat?> CreateChatFromResumeAsync(int resumeId, int vacancyId, int companyId)
+{
+    Resume? resume = await _context.Resumes
+        .FirstOrDefaultAsync(r => r.Id == resumeId && r.IsPublished);
+
+    if (resume == null)
+    {
+        return null;
+    }
+
+    Vacancy? vacancy = await _context.Vacancies
+        .FirstOrDefaultAsync(v => v.Id == vacancyId && v.CompanyId == companyId);
+
+    if (vacancy == null)
+    {
+        return null;
+    }
+
+    Chat? existingChat = await _context.Chats
+        .FirstOrDefaultAsync(c =>
+            c.UserId == resume.UserId &&
+            c.CompanyId == companyId &&
+            c.VacancyId == vacancyId);
+
+    if (existingChat != null)
+    {
+        return existingChat;
+    }
+
+    Chat chat = new Chat
+    {
+        UserId = resume.UserId,
+        CompanyId = companyId,
+        ResumeId = resume.Id,
+        VacancyId = vacancy.Id
+    };
+
+    await _context.Chats.AddAsync(chat);
+    await _context.SaveChangesAsync();
+
+    return chat;
+}
+    
 }

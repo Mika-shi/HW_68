@@ -75,4 +75,14 @@ public interface IHeadHunterService
     Task<List<Category>> GetCategoriesOrderedAsync();
     
     Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId);
+    
+    Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId);
+    
+    Task<ChatPageViewModel?> GetChatPageAsync(int chatId);
+    
+    Task<List<Message>> GetMessagesAsync(int? chatId);
+    
+    Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId);
+    
+    Task<Chat?> CreateChatFromResumeAsync(int resumeId, int vacancyId, int companyId);
 }
