@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using home_work_66.Models;
+using home_work_66.Services;
 using home_work_66.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -10,39 +12,43 @@ namespace home_work_66.Controllers;
 
 public class UserController : Controller
 {
-    private readonly UserManager<User> _userManager;
-    private readonly IWebHostEnvironment _environment;
-    private readonly HeadHunterContext _db;
+    private readonly IHeadHunterService _service;
 
-    public UserController(UserManager<User> userManager, IWebHostEnvironment environment, HeadHunterContext db)
+    public UserController(IHeadHunterService service)
     {
-        _userManager = userManager;
-        _environment = environment;
-        _db = db;
+        _service = service;
+    }
+
+    private int? GetCurrentUserId()
+    {
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(currentUserIdString, out int userId) ? userId : null;
     }
 
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> Index(int? id)
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
+        int? currentUserId = GetCurrentUserId();
 
         if (id == null)
         {
-            if (currentUser == null)
+            if (currentUserId == null)
             {
                 return RedirectToAction("Login", "Account");
             }
-            id = currentUser.Id;
+
+            id = currentUserId.Value;
         }
 
-        var user = await _db.Users.FindAsync(id);
+        User? user = await _service.GetUserByIdAsync(id.Value);
+
         if (user == null)
         {
             return NotFound();
         }
 
-        bool isOwner = currentUser != null && currentUser.Id == user.Id;
+        bool isOwner = currentUserId != null && currentUserId.Value == user.Id;
         ViewBag.IsOwner = isOwner;
 
         return View(user);
@@ -52,19 +58,19 @@ public class UserController : Controller
     [Authorize]
     public async Task<IActionResult> EditProfile()
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
+        int? userId = GetCurrentUserId();
 
-        if (currentUser == null)
+        if (userId == null)
         {
             return Unauthorized();
         }
 
-        EditProfileViewModel model = new EditProfileViewModel
+        EditProfileViewModel? model = await _service.GetUserProfileForEditAsync(userId.Value);
+
+        if (model == null)
         {
-            UserName = currentUser.UserName,
-            Email = currentUser.Email,
-            PhoneNumber = currentUser.PhoneNumber
-        };
+            return Unauthorized();
+        }
 
         return PartialView("_EditProfilePartialView", model);
     }
@@ -74,9 +80,9 @@ public class UserController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditProfile(EditProfileViewModel model)
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
+        int? userId = GetCurrentUserId();
 
-        if (currentUser == null)
+        if (userId == null)
         {
             return Json(new { success = false, message = "Пользователь не найден" });
         }
@@ -86,6 +92,7 @@ public class UserController : Controller
             var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
                 .SelectMany(x => x.Value!.Errors)
                 .Select(e => e.ErrorMessage);
+
             string message = string.Join("\n", errors);
 
             return Json(new
@@ -95,51 +102,39 @@ public class UserController : Controller
             });
         }
 
-        currentUser.UserName = model.UserName;
-        currentUser.Email = model.Email;
-        currentUser.PhoneNumber = model.PhoneNumber;
-
-        if (model.Avatar != null && model.Avatar.Length > 0)
-        {
-            string uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
-            
-            Directory.CreateDirectory(uploadsFolder);
-
-            string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
-            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-            await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
-            await model.Avatar.CopyToAsync(fileStream);
-
-            currentUser.AvatarUrl = $"/uploads/avatars/{uniqueFileName}";
-        }
-
-        IdentityResult result = await _userManager.UpdateAsync(currentUser);
+        EditUserProfileResult result = await _service.UpdateUserProfileAsync(userId.Value, model);
 
         if (!result.Succeeded)
         {
-            string message = string.Join("\n", result.Errors.Select(e => e.Description));
-            return Json(new { success = false, message });
+            return Json(new
+            {
+                success = false,
+                message = result.Message
+            });
         }
 
         return Json(new
         {
             success = true,
-            img = currentUser.AvatarUrl,
-            name = currentUser.UserName,
-            email = currentUser.Email
+            img = result.AvatarUrl,
+            name = result.UserName,
+            email = result.Email
         });
     }
+
     [Authorize]
     public async Task<IActionResult> Respond(int vacancyId, int companyId)
     {
-        int userId = int.Parse(_userManager.GetUserId(User)!);
-        var resumes = await _db.Resumes
-            .Where(x => x.UserId == userId)
-            .Include(x => x.Category)
-            .ToListAsync();
+        int? userId = GetCurrentUserId();
 
-        var model = new ChatCreateViewModel
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        List<Resume> resumes = await _service.GetUserResumesAsync(userId.Value);
+
+        ChatCreateViewModel model = new ChatCreateViewModel
         {
             VacancyId = vacancyId,
             CompanyId = companyId,
@@ -148,19 +143,19 @@ public class UserController : Controller
 
         return PartialView("_RespondPartialView", model);
     }
-    
+
     [HttpGet]
     [Authorize(Roles = "user")]
     public async Task<IActionResult> MyResponses()
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
+        int? userId = GetCurrentUserId();
 
-        if (currentUser == null)
+        if (userId == null)
         {
             return RedirectToAction("Login", "Account");
         }
 
-        List<Chat> responses = await _db.Chats.Where(c => c.UserId == currentUser.Id).Include(c => c.Vacancy).Include(c => c.Company).Include(c => c.Resume).ToListAsync();
+        List<Chat> responses = await _service.GetUserResponsesAsync(userId.Value);
 
         return View(responses);
     }

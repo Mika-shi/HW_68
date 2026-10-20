@@ -689,4 +689,91 @@ public class HeadHunterService : IHeadHunterService
     return chat;
 }
     
+    public async Task<EditProfileViewModel?> GetUserProfileForEditAsync(int userId)
+{
+    User? user = await _context.Users.FindAsync(userId);
+
+    if (user == null)
+    {
+        return null;
+    }
+
+    return new EditProfileViewModel
+    {
+        UserName = user.UserName,
+        Email = user.Email,
+        PhoneNumber = user.PhoneNumber
+    };
+}
+
+    public async Task<EditUserProfileResult> UpdateUserProfileAsync(int userId, EditProfileViewModel model)
+{
+    User? user = await _context.Users.FindAsync(userId);
+
+    if (user == null)
+    {
+        return new EditUserProfileResult
+        {
+            Succeeded = false,
+            Message = "Пользователь не найден"
+        };
+    }
+
+    user.UserName = model.UserName;
+    user.Email = model.Email;
+    user.PhoneNumber = model.PhoneNumber;
+
+    if (model.Avatar != null && model.Avatar.Length > 0)
+    {
+        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
+
+        Directory.CreateDirectory(uploadsFolder);
+
+        string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
+        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
+        await model.Avatar.CopyToAsync(fileStream);
+
+        user.AvatarUrl = $"/uploads/avatars/{uniqueFileName}";
+    }
+
+    var result = await _userManager.UpdateAsync(user);
+
+    if (!result.Succeeded)
+    {
+        return new EditUserProfileResult
+        {
+            Succeeded = false,
+            Message = string.Join("\n", result.Errors.Select(e => e.Description))
+        };
+    }
+
+    return new EditUserProfileResult
+    {
+        Succeeded = true,
+        AvatarUrl = user.AvatarUrl,
+        UserName = user.UserName,
+        Email = user.Email
+    };
+}
+
+    public async Task<List<Resume>> GetUserResumesAsync(int userId)
+{
+    return await _context.Resumes
+        .Where(x => x.UserId == userId)
+        .Include(x => x.Category)
+        .ToListAsync();
+}
+
+    public async Task<List<Chat>> GetUserResponsesAsync(int userId)
+{
+    return await _context.Chats
+        .Where(c => c.UserId == userId)
+        .Include(c => c.Vacancy)
+        .Include(c => c.Company)
+        .Include(c => c.Resume)
+        .ToListAsync();
+}
+    
 }

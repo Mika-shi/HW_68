@@ -85,4 +85,12 @@ public interface IHeadHunterService
     Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId);
     
     Task<Chat?> CreateChatFromResumeAsync(int resumeId, int vacancyId, int companyId);
+    
+    Task<EditProfileViewModel?> GetUserProfileForEditAsync(int userId);
+    
+    Task<EditUserProfileResult> UpdateUserProfileAsync(int userId, EditProfileViewModel model);
+    
+    Task<List<Resume>> GetUserResumesAsync(int userId);
+    
+    Task<List<Chat>> GetUserResponsesAsync(int userId);
 }
