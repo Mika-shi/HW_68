@@ -1,6 +1,7 @@
 ﻿using home_work_66.Enums;
 using home_work_66.Models;
 using home_work_66.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace home_work_66.Services;
@@ -8,10 +9,14 @@ namespace home_work_66.Services;
 public class HeadHunterService : IHeadHunterService
 {
     private readonly HeadHunterContext _context;
+    private readonly UserManager<User> _userManager;
+    private readonly IWebHostEnvironment _webHostEnvironment;
 
-    public HeadHunterService(HeadHunterContext context)
+    public HeadHunterService(HeadHunterContext context, UserManager<User> userManager, IWebHostEnvironment webHostEnvironment)
     {
         _context = context;
+        _userManager = userManager;
+        _webHostEnvironment = webHostEnvironment;
     }
 
     public async Task<Vacancy?> GetVacancyByIdAsync(int id)
@@ -197,4 +202,112 @@ public class HeadHunterService : IHeadHunterService
 
         return true;
     }
+    
+    public async Task<List<CompanyResponsesViewModel>> GetCompanyResponsesAsync(int companyId)
+    {
+        List<Chat> chats = await _context.Chats
+            .Where(c => c.CompanyId == companyId)
+            .Include(c => c.Vacancy)
+            .Include(c => c.User)
+            .Include(c => c.Resume)
+            .OrderByDescending(c => c.Id)
+            .ToListAsync();
+
+        return chats
+            .GroupBy(c => c.VacancyId)
+            .Select(group => new CompanyResponsesViewModel
+            {
+                Vacancy = group.First().Vacancy!,
+                Responses = group.ToList()
+            })
+            .ToList();
+    }
+
+    public async Task<User?> GetUserByIdAsync(int id)
+    {
+        return await _context.Users.FindAsync(id);
+    }
+
+    public async Task<EditCompanyProfileViewModel?> GetCompanyProfileForEditAsync(int userId)
+    {
+        User? user = await _context.Users.FindAsync(userId);
+
+        if (user == null)
+        {
+            return null;
+        }
+
+        return new EditCompanyProfileViewModel
+        {
+            CompanyName = user.CompanyName ?? user.UserName ?? "",
+            PhoneNumber = user.PhoneNumber ?? "",
+            Email = user.Email ?? "",
+            AvatarUrl = user.AvatarUrl
+        };
+    }
+    
+    public async Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model)
+    {
+        User? user = await _context.Users.FindAsync(userId);
+
+        if (user == null)
+        {
+            return new EditCompanyProfileResult { Succeeded = false, Message = "Пользователь не найден" };
+        }
+
+        user.CompanyName = model.CompanyName;
+        user.PhoneNumber = model.PhoneNumber;
+        user.Email = model.Email;
+
+        if (model.Avatar != null && model.Avatar.Length > 0)
+        {
+            string extension = Path.GetExtension(model.Avatar.FileName).ToLower();
+            string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".jfif" };
+
+            if (!allowedExtensions.Contains(extension))
+            {
+                return new EditCompanyProfileResult
+                {
+                    Succeeded  = false,
+                    Message = $"Разрешены только форматы {string.Join(", ", allowedExtensions)}"
+                };
+            }
+
+            string path = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
+
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
+            }
+
+            string newFileName = $"{Guid.NewGuid()}{extension}";
+            user.AvatarUrl = $"/uploads/avatars/{newFileName}";
+
+            string fileWithPath = Path.Combine(path, newFileName);
+
+            using FileStream fileStream = new FileStream(fileWithPath, FileMode.Create);
+            await model.Avatar.CopyToAsync(fileStream);
+        }
+
+        var result = await _userManager.UpdateAsync(user);
+
+        if (!result.Succeeded)
+        {
+            return new EditCompanyProfileResult
+            {
+                Succeeded = false,
+                Message = string.Join("\n", result.Errors.Select(e => e.Description))
+            };
+        }
+
+        return new EditCompanyProfileResult
+        {
+            Succeeded = true,
+            AvatarUrl = user.AvatarUrl,
+            CompanyName = user.CompanyName,
+            Email = user.Email
+        };
+    }
+
+    
 }

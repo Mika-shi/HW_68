@@ -21,4 +21,13 @@ public interface IHeadHunterService
     Task<bool> UpdateVacancyAsync(int id, int companyId);
     
     Task<bool> TogglePublishAsync(int id, int companyId);
+    
+    Task<List<CompanyResponsesViewModel>> GetCompanyResponsesAsync(int companyId);
+    
+    Task<User?> GetUserByIdAsync(int id);
+    
+    Task<EditCompanyProfileViewModel?> GetCompanyProfileForEditAsync(int userId);
+    
+    Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model);
+    
 }

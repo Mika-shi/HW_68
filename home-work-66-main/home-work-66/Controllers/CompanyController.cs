@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using home_work_66.Enums;
 using home_work_66.Models;
 using home_work_66.Services;
@@ -11,16 +12,10 @@ namespace home_work_66.Controllers;
 
 public class CompanyController : Controller
 {
-    private readonly HeadHunterContext _context;
-    private readonly UserManager<User> _userManager;
-    private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly IHeadHunterService _service;
 
-    public CompanyController(HeadHunterContext context, UserManager<User> userManager, IWebHostEnvironment webHostEnvironment, IHeadHunterService service)
+    public CompanyController(IHeadHunterService service)
     {
-        _context = context;
-        _userManager = userManager;
-        _webHostEnvironment = webHostEnvironment;
         _service = service;
     }
 
@@ -28,28 +23,28 @@ public class CompanyController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> Index(int? id)
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
-
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int? currentUserId = int.TryParse(currentUserIdString, out int parsedId) ? parsedId : null;
         if (id == null)
         {
-            if (currentUser == null)
+            if (currentUserId == null)
             {
                 return RedirectToAction("Login", "Account");
             }
-            if (!await _userManager.IsInRoleAsync(currentUser, "company"))
+            if (!User.IsInRole("company"))
             {
                 return Forbid();
             }
-            id = currentUser.Id;
+            id = currentUserId.Value;
         }
 
-        var user = await _context.Users.FindAsync(id);
+        User? user = await _service.GetUserByIdAsync(id.Value);
         if (user == null)
         {
             return NotFound();
         }
 
-        bool isOwner = currentUser != null && currentUser.Id == user.Id;
+        bool isOwner = currentUserId != null && currentUserId.Value == user.Id;
         ViewBag.IsOwner = isOwner;
 
         return View(user);
@@ -75,7 +70,8 @@ public class CompanyController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> GetCompanyVacancies(int? companyId)
     {
-        User? currentUser = await _userManager.GetUserAsync(User);
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        int? currentUserId = int.TryParse(currentUserIdString, out int parsedId) ? parsedId : null;
 
         int targetCompanyId;
         bool isOwner;
@@ -83,15 +79,15 @@ public class CompanyController : Controller
         if (companyId.HasValue)
         {
             targetCompanyId = companyId.Value;
-            isOwner = currentUser != null && currentUser.Id == targetCompanyId;
+            isOwner = currentUserId != null && currentUserId.Value == targetCompanyId;
         }
         else
         {
-            if (currentUser == null)
+            if (currentUserId == null)
             {
                 return Unauthorized();
             }
-            targetCompanyId = currentUser.Id;
+            targetCompanyId = currentUserId.Value;
             isOwner = true;
         }
 
@@ -117,7 +113,7 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> CreateVacancy()
     {
-        ViewBag.Categories = await _context.Categories.ToListAsync();
+        ViewBag.Categories = await _service.GetCategoriesAsync();
         return PartialView("~/Views/Company/Partials/_CreateVacancy.cshtml", new CreateVacancyViewModel());
     }
 
@@ -144,11 +140,12 @@ public class CompanyController : Controller
             });
         }
 
-        User? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        
+        if (!int.TryParse(currentUserIdString, out int userId))
             return Json(new { success = false, message = "Пользователь не найден" });
 
-        await _service.CreateVacancyAsync(model, user.Id);
+        await _service.CreateVacancyAsync(model, userId);
 
         return Json(new { success = true });
     }
@@ -157,22 +154,21 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> EditVacancy(int id)
     {
-        User? user = await _userManager.GetUserAsync(User);
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (user == null)
+        if (!int.TryParse(currentUserIdString, out int userId))
         {
             return NotFound();
         }
 
-        CreateVacancyViewModel? model = await _service.GetVacancyForEditAsync(id, user.Id);
+        CreateVacancyViewModel? model = await _service.GetVacancyForEditAsync(id, userId);
 
         if (model == null)
         {
             return NotFound();
         }
 
-        ViewBag.Categories = await _context.Categories.ToListAsync();
-
+        ViewBag.Categories = await _service.GetCategoriesAsync();
         return PartialView("~/Views/Company/Partials/_EditVacancy.cshtml", model);
     }
 
@@ -199,14 +195,14 @@ public class CompanyController : Controller
             });
         }
 
-        User? user = await _userManager.GetUserAsync(User);
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (user == null)
+        if (!int.TryParse(currentUserIdString, out int userId))
         {
             return Json(new { success = false, message = "Пользователь не найден" });
         }
-
-        bool result = await _service.EditVacancyAsync(id, user.Id, model);
+        
+        bool result = await _service.EditVacancyAsync(id, userId, model);
 
         if (!result)
         {
@@ -220,10 +216,14 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> UpdateVacancy(int id)
     {
-        User? user = await _userManager.GetUserAsync(User);        if (user == null)
-            return Json(new { success = false, message = "Пользователь не найден" });
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        bool result = await _service.UpdateVacancyAsync(id, user.Id);
+        if (!int.TryParse(currentUserIdString, out int userId))
+        {
+            return Json(new { success = false, message = "Пользователь не найден" });
+        }
+
+        bool result = await _service.UpdateVacancyAsync(id, userId);
 
         if (!result)
         {
@@ -236,11 +236,14 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> TogglePublish(int id)
     {
-        User? user = await _userManager.GetUserAsync(User);
-        if (user == null)
-            return Json(new { success = false, message = "Пользователь не найден" });
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        bool result = await _service.TogglePublishAsync(id, user.Id);
+        if (!int.TryParse(currentUserIdString, out int userId))
+        {
+            return Json(new { success = false, message = "Пользователь не найден" });
+        }
+
+        bool result = await _service.TogglePublishAsync(id, userId);
 
         if (!result)
         {
@@ -253,17 +256,19 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> EditProfile()
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-            return NotFound();
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        var model = new EditCompanyProfileViewModel()
+        if (!int.TryParse(currentUserIdString, out int userId))
         {
-            CompanyName = user.CompanyName ?? user.UserName ?? "",
-            PhoneNumber = user.PhoneNumber ?? "",
-            Email = user.Email ?? "",
-            AvatarUrl = user.AvatarUrl
-        };
+            return NotFound();
+        }
+
+        EditCompanyProfileViewModel? model = await _service.GetCompanyProfileForEditAsync(userId);
+
+        if (model == null)
+        {
+            return NotFound();
+        }
         return PartialView("~/Views/Company/Partials/_EditProfile.cshtml", model);
     }
 
@@ -271,10 +276,6 @@ public class CompanyController : Controller
     [Authorize(Roles = "company")]
     public async Task<IActionResult> EditProfile(EditCompanyProfileViewModel model)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null)
-            return Json(new { success = false, message = "Пользователь не найден" });
-
         if (!ModelState.IsValid)
         {
             var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
@@ -289,77 +290,42 @@ public class CompanyController : Controller
             });
         }
 
-        user.CompanyName = model.CompanyName;
-        user.PhoneNumber = model.PhoneNumber;
-        user.Email = model.Email;
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (model.Avatar != null && model.Avatar.Length > 0)
+        if (!int.TryParse(currentUserIdString, out int userId))
         {
-            var extension = Path.GetExtension(model.Avatar.FileName).ToLower();
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".jfif" };
-
-            if (!allowedExtensions.Contains(extension))
-            {
-                return Json(new { success = false, message = $"Разрешены только форматы {string.Join(", ", allowedExtensions)}" });
-            }
-
-            var wwwPath = _webHostEnvironment.WebRootPath;
-            var path = Path.Combine(wwwPath, "uploads", "avatars");
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
-            var newFileName = $"{Guid.NewGuid()}{extension}";
-            user.AvatarUrl = $"/uploads/avatars/{newFileName}";
-            var fileWithPath = Path.Combine(path, newFileName);
-            using var fileStream = new FileStream(fileWithPath, FileMode.Create);
-            await model.Avatar.CopyToAsync(fileStream);
+            return Json(new { success = false, message = "Пользователь не найден" });
         }
 
-        var result = await _userManager.UpdateAsync(user);
+        EditCompanyProfileResult result = await _service.UpdateCompanyProfileAsync(userId, model);
+
         if (!result.Succeeded)
         {
-            string message = string.Join("\n", result.Errors.Select(e => e.Description));
-            return Json(new { success = false, message });
+            return Json(new { success = false, message = result.Message });
         }
 
         return Json(new
         {
             success = true,
-            img = user.AvatarUrl,
-            name = user.CompanyName,
-            email = user.Email
+            img = result.AvatarUrl,
+            name = result.CompanyName,
+            email = result.Email
         });
     }
     
+
     [HttpGet]
     [Authorize(Roles = "company")]
     public async Task<IActionResult> MyResponses()
     {
-        User? currentCompany = await _userManager.GetUserAsync(User);
+        string? currentUserIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-        if (currentCompany == null)
+        if (!int.TryParse(currentUserIdString, out int userId))
         {
             return RedirectToAction("Login", "Account");
         }
 
-        List<Chat> chats = await _context.Chats
-            .Where(c => c.CompanyId == currentCompany.Id)
-            .Include(c => c.Vacancy)
-            .Include(c => c.User)
-            .Include(c => c.Resume)
-            .OrderByDescending(c => c.Id)
-            .ToListAsync();
-
-        List<CompanyResponsesViewModel> responses = chats
-            .GroupBy(c => c.VacancyId)
-            .Select(group => new CompanyResponsesViewModel
-            {
-                Vacancy = group.First().Vacancy!,
-                Responses = group.ToList()
-            })
-            .ToList();
+        List<CompanyResponsesViewModel> responses = await _service.GetCompanyResponsesAsync(userId);
 
         return View(responses);
     }
