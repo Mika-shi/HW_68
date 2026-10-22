@@ -273,4 +273,57 @@ public async Task DeleteCourseAsync(Course course)
     _context.Courses.Remove(course);
     await _context.SaveChangesAsync();
 }
+
+public async Task<Chat?> GetExistingChatAsync(int userId, int vacancyId)
+{
+    return await _context.Chats
+        .FirstOrDefaultAsync(c => c.UserId == userId && c.VacancyId == vacancyId);
+}
+
+public async Task AddChatAsync(Chat chat)
+{
+    await _context.Chats.AddAsync(chat);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<Chat?> GetChatByIdAsync(int chatId)
+{
+    return await _context.Chats
+        .Include(x => x.Vacancy)
+        .Include(x => x.Resume)
+        .Include(x => x.User)
+        .Include(x => x.Company)
+        .FirstOrDefaultAsync(x => x.Id == chatId);
+}
+
+public async Task<List<Message>> GetMessagesByChatIdAsync(int? chatId)
+{
+    return await _context.Messages
+        .Where(x => x.ChatId == chatId)
+        .Include(x => x.User)
+        .OrderBy(x => x.CreatedAt)
+        .ToListAsync();
+}
+
+public async Task AddMessageAsync(Message message)
+{
+    await _context.Messages.AddAsync(message);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<Resume?> GetPublishedResumeByIdAsync(int resumeId)
+{
+    return await _context.Resumes
+        .FirstOrDefaultAsync(r => r.Id == resumeId && r.IsPublished);
+}
+
+public async Task<Chat?> GetExistingChatForCompanyAsync(int userId, int companyId, int vacancyId)
+{
+    return await _context.Chats
+        .FirstOrDefaultAsync(c =>
+            c.UserId == userId &&
+            c.CompanyId == companyId &&
+            c.VacancyId == vacancyId);
+}
+
 }

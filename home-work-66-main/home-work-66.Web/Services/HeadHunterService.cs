@@ -504,8 +504,7 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId)
 {
-    Chat? existingChat = await _context.Chats
-        .FirstOrDefaultAsync(c => c.UserId == userId && c.VacancyId == model.VacancyId);
+    Chat? existingChat = await _repository.GetExistingChatAsync(userId, model.VacancyId);
 
     if (existingChat != null)
     {
@@ -520,31 +519,21 @@ public class HeadHunterService : IHeadHunterService
         ResumeId = model.ResumeId!.Value
     };
 
-    await _context.Chats.AddAsync(chat);
-    await _context.SaveChangesAsync();
+    await _repository.AddChatAsync(chat);
 
     return chat;
 }
 
     public async Task<ChatPageViewModel?> GetChatPageAsync(int chatId)
 {
-    Chat? chat = await _context.Chats
-        .Include(x => x.Vacancy)
-        .Include(x => x.Resume)
-        .Include(x => x.User)
-        .Include(x => x.Company)
-        .FirstOrDefaultAsync(x => x.Id == chatId);
+    Chat? chat = await _repository.GetChatByIdAsync(chatId);
 
     if (chat == null)
     {
         return null;
     }
 
-    List<Message> messages = await _context.Messages
-        .Where(x => x.ChatId == chatId)
-        .Include(x => x.User)
-        .OrderBy(x => x.CreatedAt)
-        .ToListAsync();
+    List<Message> messages = await _repository.GetMessagesByChatIdAsync(chatId);
 
     return new ChatPageViewModel
     {
@@ -555,11 +544,7 @@ public class HeadHunterService : IHeadHunterService
 
     public async Task<List<Message>> GetMessagesAsync(int? chatId)
 {
-    return await _context.Messages
-        .Where(x => x.ChatId == chatId)
-        .Include(x => x.User)
-        .OrderBy(x => x.CreatedAt)
-        .ToListAsync();
+    return await _repository.GetMessagesByChatIdAsync(chatId);
 }
 
     public async Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId)
@@ -571,40 +556,29 @@ public class HeadHunterService : IHeadHunterService
         CreatedAt = DateTime.UtcNow,
         ChatId = model.ChatId
     };
+    
+    await _repository.AddMessageAsync(message);
 
-    await _context.Messages.AddAsync(message);
-    await _context.SaveChangesAsync();
-
-    return await _context.Messages
-        .Where(x => x.ChatId == model.ChatId)
-        .Include(x => x.User)
-        .OrderBy(x => x.CreatedAt)
-        .ToListAsync();
+    return await _repository.GetMessagesByChatIdAsync(model.ChatId);
 }
 
     public async Task<Chat?> CreateChatFromResumeAsync(int resumeId, int vacancyId, int companyId)
 {
-    Resume? resume = await _context.Resumes
-        .FirstOrDefaultAsync(r => r.Id == resumeId && r.IsPublished);
+    Resume? resume = await _repository.GetPublishedResumeByIdAsync(resumeId);
 
     if (resume == null)
     {
         return null;
     }
 
-    Vacancy? vacancy = await _context.Vacancies
-        .FirstOrDefaultAsync(v => v.Id == vacancyId && v.CompanyId == companyId);
+    Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(vacancyId, companyId);
 
     if (vacancy == null)
     {
         return null;
     }
 
-    Chat? existingChat = await _context.Chats
-        .FirstOrDefaultAsync(c =>
-            c.UserId == resume.UserId &&
-            c.CompanyId == companyId &&
-            c.VacancyId == vacancyId);
+    Chat? existingChat = await _repository.GetExistingChatForCompanyAsync(resume.UserId, companyId, vacancyId);
 
     if (existingChat != null)
     {
@@ -618,9 +592,8 @@ public class HeadHunterService : IHeadHunterService
         ResumeId = resume.Id,
         VacancyId = vacancy.Id
     };
-
-    await _context.Chats.AddAsync(chat);
-    await _context.SaveChangesAsync();
+    
+    await _repository.AddChatAsync(chat);
 
     return chat;
 }

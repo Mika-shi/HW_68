@@ -61,4 +61,18 @@ public interface IHeadHunterRepository
     Task UpdateCourseAsync(Course course);
     
     Task DeleteCourseAsync(Course course);
+    
+    Task<Chat?> GetExistingChatAsync(int userId, int vacancyId);
+    
+    Task AddChatAsync(Chat chat);
+    
+    Task<Chat?> GetChatByIdAsync(int chatId);
+    
+    Task<List<Message>> GetMessagesByChatIdAsync(int? chatId);
+    
+    Task AddMessageAsync(Message message);
+    
+    Task<Resume?> GetPublishedResumeByIdAsync(int resumeId);
+    
+    Task<Chat?> GetExistingChatForCompanyAsync(int userId, int companyId, int vacancyId);
 }
