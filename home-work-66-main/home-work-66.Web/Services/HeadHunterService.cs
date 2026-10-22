@@ -6,22 +6,18 @@ using home_work_66.ViewModels;
 /*using home_work_66.Enums;* /
 /*using home_work_66.ViewModels;*/
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using home_work_66.DAL.Data;
 
 namespace home_work_66.Services;
 
 public class HeadHunterService : IHeadHunterService
 {
-    private readonly HeadHunterContext _context;
     private readonly UserManager<User> _userManager;
     private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly SignInManager<User> _signInManager;
     private readonly IHeadHunterRepository _repository;
 
-    public HeadHunterService(HeadHunterContext context, UserManager<User> userManager, IWebHostEnvironment webHostEnvironment, SignInManager<User> signInManager, IHeadHunterRepository repository)
+    public HeadHunterService(UserManager<User> userManager, IWebHostEnvironment webHostEnvironment, SignInManager<User> signInManager, IHeadHunterRepository repository)
     {
-        _context = context;
         _userManager = userManager;
         _webHostEnvironment = webHostEnvironment;
         _signInManager = signInManager;
@@ -224,7 +220,7 @@ public class HeadHunterService : IHeadHunterService
 
     public async Task<EditCompanyProfileViewModel?> GetCompanyProfileForEditAsync(int userId)
     {
-        User? user = await _context.Users.FindAsync(userId);
+        User? user = await _repository.GetUserByIdAsync(userId);
 
         if (user == null)
         {
@@ -242,7 +238,7 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model)
     {
-        User? user = await _context.Users.FindAsync(userId);
+        User? user = await  _repository.GetUserByIdAsync(userId);
 
         if (user == null)
         {
@@ -600,7 +596,7 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<EditProfileViewModel?> GetUserProfileForEditAsync(int userId)
 {
-    User? user = await _context.Users.FindAsync(userId);
+    User? user = await _repository.GetUserByIdAsync(userId);
 
     if (user == null)
     {
@@ -617,7 +613,7 @@ public class HeadHunterService : IHeadHunterService
 
     public async Task<EditUserProfileResult> UpdateUserProfileAsync(int userId, EditProfileViewModel model)
 {
-    User? user = await _context.Users.FindAsync(userId);
+    User? user = await _repository.GetUserByIdAsync(userId);
 
     if (user == null)
     {
@@ -669,20 +665,12 @@ public class HeadHunterService : IHeadHunterService
 
     public async Task<List<Resume>> GetUserResumesAsync(int userId)
 {
-    return await _context.Resumes
-        .Where(x => x.UserId == userId)
-        .Include(x => x.Category)
-        .ToListAsync();
+    return await _repository.GetUserResumesAsync(userId);
 }
 
     public async Task<List<Chat>> GetUserResponsesAsync(int userId)
 {
-    return await _context.Chats
-        .Where(c => c.UserId == userId)
-        .Include(c => c.Vacancy)
-        .Include(c => c.Company)
-        .Include(c => c.Resume)
-        .ToListAsync();
+    return await _repository.GetUserResponsesAsync(userId);
 }
     
     public async Task<AccountResult> RegisterAsync(RegisterViewModel model)
@@ -828,12 +816,7 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<bool> IsEmailAvailableAsync(string email, int? id)
     {
-        if (id.HasValue)
-        {
-            return !await _context.Users.AnyAsync(u => u.Email == email && u.Id != id.Value);
-        }
-
-        return !await _context.Users.AnyAsync(u => u.Email == email);
+        return await _repository.IsEmailAvailableAsync(email, id);
     }
 
     public bool IsPasswordValid(string password)

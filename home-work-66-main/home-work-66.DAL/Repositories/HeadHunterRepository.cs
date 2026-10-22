@@ -326,4 +326,32 @@ public async Task<Chat?> GetExistingChatForCompanyAsync(int userId, int companyI
             c.VacancyId == vacancyId);
 }
 
+public async Task<List<Resume>> GetUserResumesAsync(int userId)
+{
+    return await _context.Resumes
+        .Where(x => x.UserId == userId)
+        .Include(x => x.Category)
+        .ToListAsync();
+}
+
+public async Task<List<Chat>> GetUserResponsesAsync(int userId)
+{
+    return await _context.Chats
+        .Where(c => c.UserId == userId)
+        .Include(c => c.Vacancy)
+        .Include(c => c.Company)
+        .Include(c => c.Resume)
+        .ToListAsync();
+}
+
+public async Task<bool> IsEmailAvailableAsync(string email, int? id)
+{
+    if (id.HasValue)
+    {
+        return !await _context.Users.AnyAsync(u => u.Email == email && u.Id != id.Value);
+    }
+
+    return !await _context.Users.AnyAsync(u => u.Email == email);
+}
+
 }

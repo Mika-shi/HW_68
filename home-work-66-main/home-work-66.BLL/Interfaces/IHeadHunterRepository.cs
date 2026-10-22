@@ -75,4 +75,10 @@ public interface IHeadHunterRepository
     Task<Resume?> GetPublishedResumeByIdAsync(int resumeId);
     
     Task<Chat?> GetExistingChatForCompanyAsync(int userId, int companyId, int vacancyId);
+    
+    Task<List<Resume>> GetUserResumesAsync(int userId);
+    
+    Task<List<Chat>> GetUserResponsesAsync(int userId);
+    
+    Task<bool> IsEmailAvailableAsync(string email, int? id);
 }
