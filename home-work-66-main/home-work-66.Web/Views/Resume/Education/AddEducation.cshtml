@@ -1,0 +1,59 @@
+@model home_work_66.BLL.Models.Education
+
+@{
+    ViewData["Title"] = "Добавить образование";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+
+                    <h2 class="mb-4">Образование</h2>
+
+                    <form asp-controller="Resume" asp-action="AddEducation" method="post">
+
+                        <input type="hidden" asp-for="ResumeId" value="@ViewBag.ResumeId" />
+
+                        <div class="mb-3">
+                            <label asp-for="InstitutionName" class="form-label">Учебное заведение</label>
+                            <input asp-for="InstitutionName" class="form-control" placeholder="Например: Кыргызский национальный университет" />
+                            <span asp-validation-for="InstitutionName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Specialty" class="form-label">Специальность</label>
+                            <input asp-for="Specialty" class="form-control" placeholder="Например: Программная инженерия" />
+                            <span asp-validation-for="Specialty" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="GraduationYear" class="form-label">Год окончания</label>
+                            <input asp-for="GraduationYear" class="form-control" type="number" />
+                            <span asp-validation-for="GraduationYear" class="text-danger"></span>
+                            </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">Добавить</button>
+
+                            <a asp-controller="Resume" asp-action="Details" asp-route-id="@ViewBag.ResumeId" class="btn btn-secondary">
+                                Отмена
+                            </a>
+                        </div>
+
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}
