@@ -1,6 +1,7 @@
 using System.Security.Claims;
+using home_work_66.BLL.DTOs;
 using home_work_66.BLL.Models;
-using home_work_66.Enums;
+using home_work_66.BLL.Enums;
 using home_work_66.Services;
 using home_work_66.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -54,16 +55,36 @@ public class CompanyController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> GetVacancies(string? searchString, int? categoryId, VacancySortState sortOrder = VacancySortState.DateDesc, int page = 1)
     {
-        VacancyIndexViewModel model = await _service.GetVacanciesAsync(searchString, categoryId, sortOrder, page);
+        VacancyListDto result = await _service.GetVacanciesAsync(searchString, categoryId, sortOrder, page);
 
-        ViewBag.SalarySort = sortOrder == VacancySortState.SalaryAsc ? VacancySortState.SalaryDesc : VacancySortState.SalaryAsc;
-        ViewBag.TitleSort = sortOrder == VacancySortState.TitleAsc ? VacancySortState.TitleDesc : VacancySortState.TitleAsc;
-        ViewBag.SortOrder = sortOrder;
-        ViewBag.Categories = await _service.GetCategoriesAsync();
-        ViewBag.SearchString = searchString;
-        ViewBag.CategoryId = categoryId;
+        VacancyIndexViewModel model = new VacancyIndexViewModel
+        {
+            Vacancies = result.Vacancies.Select(v => new Vacancy
+            {
+                Id = v.Id,
+                Title = v.Title,
+                Salary = v.Salary,
+                Description = v.Description,
+                Requirements = v.Requirements,
+                ExperienceFrom = v.ExperienceFrom,
+                ExperienceTo = v.ExperienceTo,
+                CategoryId = v.CategoryId,
+                CompanyId = v.CompanyId,
+                IsPublished = v.IsPublished,
+                CreatedAt = v.CreatedAt,
+                UpdatedAt = v.UpdatedAt,
+                Category = v.Category,
+                Company = v.Company
+            }).ToList(),
 
-        return PartialView("~/Views/Company/Partials/_PublishedVacanciesPartialView.cshtml", model);
+            PageViewModel = new PageViewModel(
+                result.Vacancies.Count,
+                result.CurrentPage,
+                20
+            )
+        };
+
+        return View(model);
     }
     
     [HttpGet]
@@ -145,7 +166,19 @@ public class CompanyController : Controller
         if (!int.TryParse(currentUserIdString, out int userId))
             return Json(new { success = false, message = "Пользователь не найден" });
 
-        await _service.CreateVacancyAsync(model, userId);
+        CreateVacancyDto dto = new CreateVacancyDto
+        {
+            Id = model.Id,
+            Title = model.Title,
+            Salary = model.Salary,
+            Description = model.Description,
+            Requirements = model.Requirements,
+            ExperienceFrom = model.ExperienceFrom,
+            ExperienceTo = model.ExperienceTo,
+            CategoryId = model.CategoryId
+        };
+
+        await _service.CreateVacancyAsync(dto, userId);
 
         return Json(new { success = true });
     }
@@ -161,12 +194,24 @@ public class CompanyController : Controller
             return NotFound();
         }
 
-        CreateVacancyViewModel? model = await _service.GetVacancyForEditAsync(id, userId);
+        CreateVacancyDto? dto = await _service.GetVacancyForEditAsync(id, userId);
 
-        if (model == null)
+        if (dto == null)
         {
             return NotFound();
         }
+
+        CreateVacancyViewModel model = new CreateVacancyViewModel
+        {
+            Id = dto.Id,
+            Title = dto.Title,
+            Salary = dto.Salary,
+            Description = dto.Description,
+            Requirements = dto.Requirements,
+            ExperienceFrom = dto.ExperienceFrom,
+            ExperienceTo = dto.ExperienceTo,
+            CategoryId = dto.CategoryId
+        };
 
         ViewBag.Categories = await _service.GetCategoriesAsync();
         return PartialView("~/Views/Company/Partials/_EditVacancy.cshtml", model);
@@ -180,18 +225,21 @@ public class CompanyController : Controller
         {
             ModelState.AddModelError("ExperienceTo", "Максимальный опыт не может быть меньше минимального");
         }
-        
+
         if (!ModelState.IsValid)
         {
             var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
                 .SelectMany(x => x.Value!.Errors)
                 .Select(e => e.ErrorMessage);
+
             string message = string.Join("\n", errors);
 
             return Json(new
             {
                 success = false,
-                message = string.IsNullOrWhiteSpace(message) ? "Пожалуйста, заполните все обязательные поля корректно" : message
+                message = string.IsNullOrWhiteSpace(message)
+                    ? "Пожалуйста, заполните все обязательные поля корректно"
+                    : message
             });
         }
 
@@ -199,17 +247,40 @@ public class CompanyController : Controller
 
         if (!int.TryParse(currentUserIdString, out int userId))
         {
-            return Json(new { success = false, message = "Пользователь не найден" });
+            return Json(new
+            {
+                success = false,
+                message = "Пользователь не найден"
+            });
         }
-        
-        bool result = await _service.EditVacancyAsync(id, userId, model);
+
+        CreateVacancyDto dto = new CreateVacancyDto
+        {
+            Id = model.Id,
+            Title = model.Title,
+            Salary = model.Salary,
+            Description = model.Description,
+            Requirements = model.Requirements,
+            ExperienceFrom = model.ExperienceFrom,
+            ExperienceTo = model.ExperienceTo,
+            CategoryId = model.CategoryId
+        };
+
+        bool result = await _service.EditVacancyAsync(id, userId, dto);
 
         if (!result)
         {
-            return Json(new { success = false, message = "Вакансия не найдена" });
+            return Json(new
+            {
+                success = false,
+                message = "Вакансия не найдена"
+            });
         }
 
-        return Json(new { success = true });
+        return Json(new
+        {
+            success = true
+        });
     }
 
     [HttpPost]

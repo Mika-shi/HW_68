@@ -1,6 +1,7 @@
-﻿using home_work_66.BLL.Interfaces;
+﻿using home_work_66.BLL.DTOs;
+using home_work_66.BLL.Interfaces;
 using home_work_66.BLL.Models;
-using home_work_66.Enums;
+using home_work_66.BLL.Enums;
 using home_work_66.Services;
 using home_work_66.ViewModels;
 /*using home_work_66.Enums;* /
@@ -34,7 +35,7 @@ public class HeadHunterService : IHeadHunterService
         return await _repository.GetCategoriesAsync();
     }
     
-    public async Task<VacancyIndexViewModel> GetVacanciesAsync(string? searchString, int? categoryId, VacancySortState sortOrder, int page)
+    public async Task<VacancyListDto> GetVacanciesAsync(string? searchString, int? categoryId, VacancySortState sortOrder, int page)
     {
         List<Vacancy> vacancies = await _repository.GetPublishedVacanciesAsync();
         
@@ -72,18 +73,36 @@ public class HeadHunterService : IHeadHunterService
 
         int pageSize = 20;
         int count = query.Count();
+        int totalPages = (int)Math.Ceiling(count / (double)pageSize);
 
-        List<Vacancy> items = query
+        List<VacancyDto> items = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(v => new VacancyDto
+            {
+                Id = v.Id,
+                Title = v.Title,
+                Salary = v.Salary,
+                Description = v.Description,
+                Requirements = v.Requirements,
+                ExperienceFrom = v.ExperienceFrom,
+                ExperienceTo = v.ExperienceTo,
+                CategoryId = v.CategoryId,
+                CompanyId = v.CompanyId,
+                IsPublished = v.IsPublished,
+                CreatedAt = v.CreatedAt,
+                UpdatedAt = v.UpdatedAt,
+                Category = v.Category,
+                Company = v.Company
+            })
             .ToList();
 
-        PageViewModel pageViewModel = new PageViewModel(count, page, pageSize);
-
-        return new VacancyIndexViewModel
+        return new VacancyListDto
         {
             Vacancies = items,
-            PageViewModel = pageViewModel
+            CurrentPage = page,
+            TotalPages = totalPages,
+            TotalCount = count
         };
     }
     
@@ -99,7 +118,7 @@ public class HeadHunterService : IHeadHunterService
         return vacancies;
     }
     
-    public async Task<bool> CreateVacancyAsync(CreateVacancyViewModel model, int companyId)
+    public async Task<bool> CreateVacancyAsync(CreateVacancyDto  model, int companyId)
     {
         Vacancy vacancy = new Vacancy
         {
@@ -121,7 +140,7 @@ public class HeadHunterService : IHeadHunterService
         return true;
     }
     
-    public async Task<CreateVacancyViewModel?> GetVacancyForEditAsync(int id, int companyId)
+    public async Task<CreateVacancyDto?> GetVacancyForEditAsync(int id, int companyId)
     {
         Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 
@@ -130,7 +149,7 @@ public class HeadHunterService : IHeadHunterService
             return null;
         }
 
-        return new CreateVacancyViewModel
+        return new CreateVacancyDto
         {
             Id = vacancy.Id,
             Title = vacancy.Title,
@@ -143,7 +162,7 @@ public class HeadHunterService : IHeadHunterService
         };
     }
     
-    public async Task<bool> EditVacancyAsync(int id, int companyId, CreateVacancyViewModel model)
+    public async Task<bool> EditVacancyAsync(int id, int companyId, CreateVacancyDto  model)
     {
         Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 

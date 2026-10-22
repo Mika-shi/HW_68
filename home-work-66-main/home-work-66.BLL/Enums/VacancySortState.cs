@@ -1,4 +1,4 @@
-namespace home_work_66.Enums;
+namespace home_work_66.BLL.Enums;
 
 public enum VacancySortState
 {
