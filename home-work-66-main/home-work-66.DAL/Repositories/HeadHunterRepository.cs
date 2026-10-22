@@ -68,4 +68,66 @@ public class HeadHunterRepository : IHeadHunterRepository
     {
         await _context.SaveChangesAsync();
     }
+    
+    public async Task<Vacancy?> GetVacancyByIdAsync(int id)
+    {
+        return await _context.Vacancies
+            .Include(v => v.Company)
+            .Include(v => v.Category)
+            .FirstOrDefaultAsync(v => v.Id == id);
+    }
+
+    public async Task<List<Vacancy>> GetVacanciesAsync()
+    {
+        return await _context.Vacancies
+            .Include(v => v.Company)
+            .Include(v => v.Category)
+            .ToListAsync();
+    }
+
+    public async Task<List<Vacancy>> GetCompanyVacanciesAsync(int companyId)
+    {
+        return await _context.Vacancies
+            .Where(v => v.CompanyId == companyId)
+            .Include(v => v.Category)
+            .ToListAsync();
+    }
+
+    public async Task AddVacancyAsync(Vacancy vacancy)
+    {
+        _context.Vacancies.Add(vacancy);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<Vacancy?> GetVacancyForEditAsync(int id, int companyId)
+    {
+        return await _context.Vacancies
+            .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+    }
+
+    public async Task<List<Vacancy>> GetPublishedVacanciesAsync()
+    {
+        return await _context.Vacancies
+            .Include(v => v.Category)
+            .Include(v => v.Company)
+            .Where(v => v.IsPublished)
+            .ToListAsync();
+    }
+
+    public async Task<Vacancy?> GetVacancyByIdAndCompanyAsync(int id, int companyId)
+    {
+        return await _context.Vacancies
+            .FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+    }
+
+    public async Task<List<Chat>> GetCompanyChatsAsync(int companyId)
+    {
+        return await _context.Chats
+            .Where(c => c.CompanyId == companyId)
+            .Include(c => c.Vacancy)
+            .Include(c => c.User)
+            .Include(c => c.Resume)
+            .OrderByDescending(c => c.Id)
+            .ToListAsync();
+    }
 }

@@ -7,9 +7,9 @@ using home_work_66.ViewModels;
 /*using home_work_66.ViewModels;*/
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using home_work_66.BLL.Models;
+using home_work_66.DAL.Data;
 
-namespace home_work_66.DAL.Data;
+namespace home_work_66.Services;
 
 public class HeadHunterService : IHeadHunterService
 {
@@ -26,15 +26,11 @@ public class HeadHunterService : IHeadHunterService
         _webHostEnvironment = webHostEnvironment;
         _signInManager = signInManager;
         _repository = repository;
-
     }
 
     public async Task<Vacancy?> GetVacancyByIdAsync(int id)
     {
-        return await _context.Vacancies
-            .Include(v => v.Category)
-            .Include(v => v.Company)
-            .FirstOrDefaultAsync(v => v.Id == id);
+        return await _repository.GetVacancyByIdAsync(id);
     }
     
     public async Task<List<Category>> GetCategoriesAsync()
@@ -44,10 +40,9 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<VacancyIndexViewModel> GetVacanciesAsync(string? searchString, int? categoryId, VacancySortState sortOrder, int page)
     {
-        var query = _context.Vacancies
-            .Include(v => v.Category)
-            .Include(v => v.Company)
-            .Where(v => v.IsPublished);
+        List<Vacancy> vacancies = await _repository.GetPublishedVacanciesAsync();
+        
+        IEnumerable<Vacancy> query = vacancies;
 
         if (!string.IsNullOrWhiteSpace(searchString))
         {
@@ -80,12 +75,12 @@ public class HeadHunterService : IHeadHunterService
         }
 
         int pageSize = 20;
-        int count = await query.CountAsync();
+        int count = query.Count();
 
-        var items = await query
+        List<Vacancy> items = query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .ToListAsync();
+            .ToList();
 
         PageViewModel pageViewModel = new PageViewModel(count, page, pageSize);
 
@@ -98,18 +93,14 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<List<Vacancy>> GetCompanyVacanciesAsync(int companyId, bool isOwner)
     {
-        var query = _context.Vacancies
-            .Include(v => v.Category)
-            .Where(v => v.CompanyId == companyId);
+        List<Vacancy> vacancies = await _repository.GetCompanyVacanciesAsync(companyId);
 
         if (!isOwner)
         {
-            query = query.Where(v => v.IsPublished);
+            vacancies = vacancies.Where(v => v.IsPublished).ToList();
         }
 
-        return await query
-            .OrderByDescending(v => v.UpdatedAt)
-            .ToListAsync();
+        return vacancies;
     }
     
     public async Task<bool> CreateVacancyAsync(CreateVacancyViewModel model, int companyId)
@@ -129,15 +120,14 @@ public class HeadHunterService : IHeadHunterService
             IsPublished = false
         };
 
-        _context.Vacancies.Add(vacancy);
-        await _context.SaveChangesAsync();
+        await _repository.AddVacancyAsync(vacancy);
 
         return true;
     }
     
     public async Task<CreateVacancyViewModel?> GetVacancyForEditAsync(int id, int companyId)
     {
-        Vacancy? vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+        Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 
         if (vacancy == null)
         {
@@ -159,7 +149,7 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<bool> EditVacancyAsync(int id, int companyId, CreateVacancyViewModel model)
     {
-        Vacancy? vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+        Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 
         if (vacancy == null)
         {
@@ -175,14 +165,14 @@ public class HeadHunterService : IHeadHunterService
         vacancy.CategoryId = model.CategoryId;
         vacancy.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return true;
     }
     
     public async Task<bool> UpdateVacancyAsync(int id, int companyId)
     {
-        Vacancy? vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+        Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 
         if (vacancy == null)
         {
@@ -191,14 +181,14 @@ public class HeadHunterService : IHeadHunterService
 
         vacancy.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return true;
     }
     
     public async Task<bool> TogglePublishAsync(int id, int companyId)
     {
-        Vacancy? vacancy = await _context.Vacancies.FirstOrDefaultAsync(v => v.Id == id && v.CompanyId == companyId);
+        Vacancy? vacancy = await _repository.GetVacancyByIdAndCompanyAsync(id, companyId);
 
         if (vacancy == null)
         {
@@ -208,20 +198,14 @@ public class HeadHunterService : IHeadHunterService
         vacancy.IsPublished = !vacancy.IsPublished;
         vacancy.UpdatedAt = DateTime.UtcNow;
 
-        await _context.SaveChangesAsync();
+        await _repository.SaveChangesAsync();
 
         return true;
     }
     
     public async Task<List<CompanyResponsesViewModel>> GetCompanyResponsesAsync(int companyId)
     {
-        List<Chat> chats = await _context.Chats
-            .Where(c => c.CompanyId == companyId)
-            .Include(c => c.Vacancy)
-            .Include(c => c.User)
-            .Include(c => c.Resume)
-            .OrderByDescending(c => c.Id)
-            .ToListAsync();
+        List<Chat> chats = await _repository.GetCompanyChatsAsync(companyId);
 
         return chats
             .GroupBy(c => c.VacancyId)

@@ -14,6 +14,13 @@ public interface IHeadHunterRepository
     Task<bool> CategoryHasVacanciesAsync(int id);
     Task AddCategoryAsync(Category category);
     Task DeleteCategoryAsync(Category category);
-
     Task SaveChangesAsync();
+    Task<Vacancy?> GetVacancyByIdAsync(int id);
+    Task<List<Vacancy>> GetVacanciesAsync();
+    Task<List<Vacancy>> GetCompanyVacanciesAsync(int companyId);
+    Task AddVacancyAsync(Vacancy vacancy);
+    Task<Vacancy?> GetVacancyForEditAsync(int id, int companyId);
+    Task<List<Vacancy>> GetPublishedVacanciesAsync();
+    Task<Vacancy?> GetVacancyByIdAndCompanyAsync(int id, int companyId);
+    Task<List<Chat>> GetCompanyChatsAsync(int companyId);
 }
