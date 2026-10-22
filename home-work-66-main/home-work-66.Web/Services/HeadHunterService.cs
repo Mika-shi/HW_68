@@ -305,18 +305,14 @@ public class HeadHunterService : IHeadHunterService
     
     public async Task<List<Resume>> GetResumesAsync(int userId, bool isOwner)
 {
-    var query = _context.Resumes
-        .Include(r => r.Category)
-        .Where(r => r.UserId == userId);
+    List<Resume> resumes = await _repository.GetResumesByUserAsync(userId);
 
     if (!isOwner)
     {
-        query = query.Where(r => r.IsPublished);
+        resumes = resumes.Where(r => r.IsPublished).ToList();
     }
 
-    return await query
-        .OrderByDescending(r => r.UpdatedAt)
-        .ToListAsync();
+    return resumes;
 }
 
     public async Task<int> CreateResumeAsync(Resume resume, int userId)
@@ -324,21 +320,20 @@ public class HeadHunterService : IHeadHunterService
     resume.UserId = userId;
     resume.UpdatedAt = DateTime.UtcNow;
     resume.IsPublished = false;
-
-    _context.Resumes.Add(resume);
-    await _context.SaveChangesAsync();
+    
+    await _repository.AddResumeAsync(resume);
 
     return resume.Id;
 }
 
     public async Task<Resume?> GetResumeForEditAsync(int id, int userId)
 {
-    return await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+    return await _repository.GetResumeByIdAndUserAsync(id, userId);
 }
 
     public async Task<bool> EditResumeAsync(Resume model, int userId)
 {
-    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == model.Id && r.UserId == userId);
+    Resume? resume = await _repository.GetResumeByIdAndUserAsync(model.Id, userId);
 
     if (resume == null)
     {
@@ -355,14 +350,14 @@ public class HeadHunterService : IHeadHunterService
     resume.Facebook = model.Facebook;
     resume.LinkedIn = model.LinkedIn;
 
-    await _context.SaveChangesAsync();
+    await _repository.SaveChangesAsync();
 
     return true;
 }
 
     public async Task<bool> UpdateResumeDateAsync(int id, int userId)
 {
-    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+    Resume? resume = await _repository.GetResumeByIdAndUserAsync(id, userId);
 
     if (resume == null)
     {
@@ -371,35 +366,29 @@ public class HeadHunterService : IHeadHunterService
 
     resume.UpdatedAt = DateTime.UtcNow;
 
-    await _context.SaveChangesAsync();
-
+    await  _repository.SaveChangesAsync();
+    
     return true;
 }
 
     public async Task AddWorkExperienceAsync(WorkExperience workExperience)
 {
-    _context.WorkExperiences.Add(workExperience);
-    await _context.SaveChangesAsync();
+    await _repository.AddWorkExperienceAsync(workExperience);
 }
 
     public async Task<WorkExperience?> GetWorkExperienceAsync(int id, int userId)
 {
-    return await _context.WorkExperiences
-        .Include(w => w.Resume)
-        .FirstOrDefaultAsync(w => w.Id == id && w.Resume!.UserId == userId);
+    return await _repository.GetWorkExperienceAsync(id, userId);
 }
 
     public async Task UpdateWorkExperienceAsync(WorkExperience workExperience)
 {
-    _context.WorkExperiences.Update(workExperience);
-    await _context.SaveChangesAsync();
+    await _repository.UpdateWorkExperienceAsync(workExperience);
 }
 
     public async Task<int?> DeleteWorkExperienceAsync(int id, int userId)
 {
-    WorkExperience? workExperience = await _context.WorkExperiences
-        .Include(w => w.Resume)
-        .FirstOrDefaultAsync(w => w.Id == id && w.Resume!.UserId == userId);
+    WorkExperience? workExperience = await _repository.GetWorkExperienceAsync(id, userId);
 
     if (workExperience == null)
     {
@@ -407,156 +396,111 @@ public class HeadHunterService : IHeadHunterService
     }
 
     int resumeId = workExperience.ResumeId;
-
-    _context.WorkExperiences.Remove(workExperience);
-    await _context.SaveChangesAsync();
+    
+    await _repository.DeleteWorkExperienceAsync(workExperience);
 
     return resumeId;
 }
 
-    public async Task AddEducationAsync(Education education)
-{
-    _context.Educations.Add(education);
-    await _context.SaveChangesAsync();
-}
+    public async Task AddEducationAsync(Education education) {
+        await _repository.AddEducationAsync(education);
+    }
 
-    public async Task<Education?> GetEducationAsync(int id, int userId)
-{
-    return await _context.Educations
-        .Include(e => e.Resume)
-        .FirstOrDefaultAsync(e => e.Id == id && e.Resume!.UserId == userId);
-}
+    public async Task<Education?> GetEducationAsync(int id, int userId) {
+        return await _repository.GetEducationAsync(id, userId);
+    }
 
     public async Task UpdateEducationAsync(Education education)
-{
-    _context.Educations.Update(education);
-    await _context.SaveChangesAsync();
-}
-
-    public async Task<int?> DeleteEducationAsync(int id, int userId)
-{
-    Education? education = await _context.Educations
-        .Include(e => e.Resume)
-        .FirstOrDefaultAsync(e => e.Id == id && e.Resume!.UserId == userId);
-
-    if (education == null)
     {
-        return null;
+        await _repository.UpdateEducationAsync(education);
     }
+    
+    public async Task<int?> DeleteEducationAsync(int id, int userId)
+    {
+        Education? education = await _repository.GetEducationAsync(id, userId);
 
-    int resumeId = education.ResumeId;
+        if (education == null)
+        {
+            return null;
+        }
 
-    _context.Educations.Remove(education);
-    await _context.SaveChangesAsync();
+        int resumeId = education.ResumeId;
 
-    return resumeId;
-}
+        await _repository.DeleteEducationAsync(education);
+
+        return resumeId;
+    }
 
     public async Task AddCourseAsync(Course course)
-{
-    _context.Courses.Add(course);
-    await _context.SaveChangesAsync();
-}
+    {
+        await _repository.AddCourseAsync(course);
+    }
 
     public async Task<Course?> GetCourseAsync(int id, int userId)
-{
-    return await _context.Courses
-        .Include(c => c.Resume)
-        .FirstOrDefaultAsync(c => c.Id == id && c.Resume!.UserId == userId);
-}
+    {
+        return await _repository.GetCourseAsync(id, userId);
+    }
 
     public async Task UpdateCourseAsync(Course course)
-{
-    _context.Courses.Update(course);
-    await _context.SaveChangesAsync();
-}
+    {
+        await _repository.UpdateCourseAsync(course);
+    }
 
     public async Task<int?> DeleteCourseAsync(int id, int userId)
-{
-    Course? course = await _context.Courses
-        .Include(c => c.Resume)
-        .FirstOrDefaultAsync(c => c.Id == id && c.Resume!.UserId == userId);
-
-    if (course == null)
     {
-        return null;
+        Course? course = await _repository.GetCourseAsync(id, userId);
+
+        if (course == null)
+        {
+            return null;
+        }
+
+        int resumeId = course.ResumeId;
+
+        await _repository.DeleteCourseAsync(course);
+
+        return resumeId;
     }
-
-    int resumeId = course.ResumeId;
-
-    _context.Courses.Remove(course);
-    await _context.SaveChangesAsync();
-
-    return resumeId;
-}
-
     public async Task<Resume?> GetResumeDetailsAsync(int id, int userId)
-{
-    return await _context.Resumes
-        .Include(r => r.Category)
-        .Include(r => r.WorkExperiences)
-        .Include(r => r.Educations)
-        .Include(r => r.Courses)
-        .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
-}
+    {
+        return await _repository.GetResumeDetailsAsync(id, userId);
+    }
 
     public async Task<bool> ToggleResumePublicationAsync(int id, int userId)
-{
-    Resume? resume = await _context.Resumes.FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
-
-    if (resume == null)
     {
-        return false;
+        Resume? resume = await _repository.GetResumeByIdAndUserAsync(id, userId);
+
+        if (resume == null)
+        {
+            return false;
+        }
+
+        resume.IsPublished = !resume.IsPublished;
+
+        await _repository.SaveChangesAsync();
+
+        return true;
     }
-
-    resume.IsPublished = !resume.IsPublished;
-
-    await _context.SaveChangesAsync();
-
-    return true;
-}
 
     public async Task<List<Resume>> GetPublishedResumesAsync()
-{
-    return await _context.Resumes
-        .Include(r => r.Category)
-        .Include(r => r.User)
-        .Where(r => r.IsPublished)
-        .OrderByDescending(r => r.UpdatedAt)
-        .ToListAsync();
-}
-
-    public async Task<Resume?> GetPublicResumeDetailsAsync(int id)
-{
-    return await _context.Resumes
-        .Include(r => r.Category)
-        .Include(r => r.WorkExperiences)
-        .Include(r => r.Educations)
-        .Include(r => r.Courses)
-        .FirstOrDefaultAsync(r => r.Id == id && r.IsPublished);
-}
-
-    public async Task<List<Category>> GetCategoriesOrderedAsync()
-{
-    return await _repository.GetCategoriesOrderedAsync();
-}
-
-    public async Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId)
-{
-    var query = _context.Resumes
-        .Include(r => r.Category)
-        .Include(r => r.User)
-        .Where(r => r.IsPublished);
-
-    if (categoryId.HasValue)
     {
-        query = query.Where(r => r.CategoryId == categoryId.Value);
+        return await _repository.GetPublishedResumesAsync();
     }
 
-    return await query
-        .OrderByDescending(r => r.UpdatedAt)
-        .ToListAsync();
-}
+    public async Task<Resume?> GetPublicResumeDetailsAsync(int id)
+    {
+        return await _repository.GetPublicResumeDetailsAsync(id);
+    }
+    
+    public async Task<List<Category>> GetCategoriesOrderedAsync()
+    {
+        return await _repository.GetCategoriesOrderedAsync();
+    }
+
+    public async Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId)
+    {
+        return await _repository.GetPublishedResumesByCategoryAsync(categoryId);
+    }
     
     public async Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId)
 {

@@ -23,4 +23,42 @@ public interface IHeadHunterRepository
     Task<List<Vacancy>> GetPublishedVacanciesAsync();
     Task<Vacancy?> GetVacancyByIdAndCompanyAsync(int id, int companyId);
     Task<List<Chat>> GetCompanyChatsAsync(int companyId);
+    
+    Task<List<Resume>> GetResumesByUserAsync(int userId);
+    
+    Task<Resume?> GetResumeByIdAndUserAsync(int id, int userId);
+    
+    Task AddResumeAsync(Resume resume);
+    
+    Task<Resume?> GetResumeDetailsAsync(int id, int userId);
+    
+    Task<List<Resume>> GetPublishedResumesAsync();
+    
+    Task<Resume?> GetPublicResumeDetailsAsync(int id);
+    
+    Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId);
+    
+    Task AddWorkExperienceAsync(WorkExperience workExperience);
+    
+    Task<WorkExperience?> GetWorkExperienceAsync(int id, int userId);
+    
+    Task UpdateWorkExperienceAsync(WorkExperience workExperience);
+    
+    Task DeleteWorkExperienceAsync(WorkExperience workExperience);
+    
+    Task AddEducationAsync(Education education);
+    
+    Task<Education?> GetEducationAsync(int id, int userId);
+    
+    Task UpdateEducationAsync(Education education);
+    
+    Task DeleteEducationAsync(Education education);
+    
+    Task AddCourseAsync(Course course);
+    
+    Task<Course?> GetCourseAsync(int id, int userId);
+    
+    Task UpdateCourseAsync(Course course);
+    
+    Task DeleteCourseAsync(Course course);
 }

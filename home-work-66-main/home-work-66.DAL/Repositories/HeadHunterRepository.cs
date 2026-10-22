@@ -130,4 +130,147 @@ public class HeadHunterRepository : IHeadHunterRepository
             .OrderByDescending(c => c.Id)
             .ToListAsync();
     }
+    
+    public async Task<List<Resume>> GetResumesByUserAsync(int userId)
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Where(r => r.UserId == userId)
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
+
+public async Task<Resume?> GetResumeByIdAndUserAsync(int id, int userId)
+{
+    return await _context.Resumes
+        .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+}
+
+public async Task AddResumeAsync(Resume resume)
+{
+    _context.Resumes.Add(resume);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<Resume?> GetResumeDetailsAsync(int id, int userId)
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.WorkExperiences)
+        .Include(r => r.Educations)
+        .Include(r => r.Courses)
+        .FirstOrDefaultAsync(r => r.Id == id && r.UserId == userId);
+}
+
+public async Task<List<Resume>> GetPublishedResumesAsync()
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.User)
+        .Where(r => r.IsPublished)
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
+
+public async Task<Resume?> GetPublicResumeDetailsAsync(int id)
+{
+    return await _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.WorkExperiences)
+        .Include(r => r.Educations)
+        .Include(r => r.Courses)
+        .FirstOrDefaultAsync(r => r.Id == id && r.IsPublished);
+}
+
+public async Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId)
+{
+    var query = _context.Resumes
+        .Include(r => r.Category)
+        .Include(r => r.User)
+        .Where(r => r.IsPublished);
+
+    if (categoryId.HasValue)
+    {
+        query = query.Where(r => r.CategoryId == categoryId.Value);
+    }
+
+    return await query
+        .OrderByDescending(r => r.UpdatedAt)
+        .ToListAsync();
+}
+
+public async Task AddWorkExperienceAsync(WorkExperience workExperience)
+{
+    _context.WorkExperiences.Add(workExperience);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<WorkExperience?> GetWorkExperienceAsync(int id, int userId)
+{
+    return await _context.WorkExperiences
+        .Include(w => w.Resume)
+        .FirstOrDefaultAsync(w => w.Id == id && w.Resume!.UserId == userId);
+}
+
+public async Task UpdateWorkExperienceAsync(WorkExperience workExperience)
+{
+    _context.WorkExperiences.Update(workExperience);
+    await _context.SaveChangesAsync();
+}
+
+public async Task DeleteWorkExperienceAsync(WorkExperience workExperience)
+{
+    _context.WorkExperiences.Remove(workExperience);
+    await _context.SaveChangesAsync();
+}
+
+public async Task AddEducationAsync(Education education)
+{
+    _context.Educations.Add(education);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<Education?> GetEducationAsync(int id, int userId)
+{
+    return await _context.Educations
+        .Include(e => e.Resume)
+        .FirstOrDefaultAsync(e => e.Id == id && e.Resume!.UserId == userId);
+}
+
+public async Task UpdateEducationAsync(Education education)
+{
+    _context.Educations.Update(education);
+    await _context.SaveChangesAsync();
+}
+
+public async Task DeleteEducationAsync(Education education)
+{
+    _context.Educations.Remove(education);
+    await _context.SaveChangesAsync();
+}
+
+public async Task AddCourseAsync(Course course)
+{
+    _context.Courses.Add(course);
+    await _context.SaveChangesAsync();
+}
+
+public async Task<Course?> GetCourseAsync(int id, int userId)
+{
+    return await _context.Courses
+        .Include(c => c.Resume)
+        .FirstOrDefaultAsync(c => c.Id == id && c.Resume!.UserId == userId);
+}
+
+public async Task UpdateCourseAsync(Course course)
+{
+    _context.Courses.Update(course);
+    await _context.SaveChangesAsync();
+}
+
+public async Task DeleteCourseAsync(Course course)
+{
+    _context.Courses.Remove(course);
+    await _context.SaveChangesAsync();
+}
 }
