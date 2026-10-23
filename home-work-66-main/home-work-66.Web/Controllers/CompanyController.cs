@@ -334,12 +334,21 @@ public class CompanyController : Controller
             return NotFound();
         }
 
-        EditCompanyProfileViewModel? model = await _service.GetCompanyProfileForEditAsync(userId);
+        EditCompanyProfileDto? dto = await _service.GetCompanyProfileForEditAsync(userId);
 
-        if (model == null)
+        if (dto == null)
         {
             return NotFound();
         }
+
+        EditCompanyProfileViewModel model = new EditCompanyProfileViewModel
+        {
+            CompanyName = dto.CompanyName,
+            PhoneNumber = dto.PhoneNumber,
+            Email = dto.Email,
+            AvatarUrl = dto.AvatarUrl
+        };
+
         return PartialView("~/Views/Company/Partials/_EditProfile.cshtml", model);
     }
 
@@ -352,12 +361,15 @@ public class CompanyController : Controller
             var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
                 .SelectMany(x => x.Value!.Errors)
                 .Select(e => e.ErrorMessage);
-            string message = string.Join("\n", errors);
+
+         string message = string.Join("\n", errors);
 
             return Json(new
             {
                 success = false,
-                message = string.IsNullOrWhiteSpace(message) ? "Пожалуйста, заполните все обязательные поля корректно" : message
+                message = string.IsNullOrWhiteSpace(message)
+                 ? "Пожалуйста, заполните все обязательные поля корректно"
+                 : message
             });
         }
 
@@ -365,26 +377,64 @@ public class CompanyController : Controller
 
         if (!int.TryParse(currentUserIdString, out int userId))
         {
-            return Json(new { success = false, message = "Пользователь не найден" });
+         return Json(new { success = false, message = "Пользователь не найден" });
         }
 
-        EditCompanyProfileResult result = await _service.UpdateCompanyProfileAsync(userId, model);
+        string? avatarUrl = null;
 
-        if (!result.Succeeded)
+        if (model.Avatar != null && model.Avatar.Length > 0)
         {
-            return Json(new { success = false, message = result.Message });
-        }
+            string extension = Path.GetExtension(model.Avatar.FileName).ToLower();
+            string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".jfif" };
 
-        return Json(new
-        {
-            success = true,
-            img = result.AvatarUrl,
-            name = result.CompanyName,
-            email = result.Email
-        });
+            if (!allowedExtensions.Contains(extension))
+            {
+             return Json(new
+             {
+                 success = false,
+                  message = $"Разрешены только форматы {string.Join(", ", allowedExtensions)}"
+             });
+         }
+
+            string path = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "avatars");
+
+            if (!Directory.Exists(path))
+            {
+             Directory.CreateDirectory(path);
+             }
+
+            string newFileName = $"{Guid.NewGuid()}{extension}";
+            string fileWithPath = Path.Combine(path, newFileName);
+
+            await using FileStream fileStream = new FileStream(fileWithPath, FileMode.Create);
+            await model.Avatar.CopyToAsync(fileStream);
+
+            avatarUrl = $"/uploads/avatars/{newFileName}";
+     }
+
+    EditCompanyProfileDto dto = new EditCompanyProfileDto
+    {
+        CompanyName = model.CompanyName,
+        PhoneNumber = model.PhoneNumber,
+        Email = model.Email,
+        AvatarUrl = avatarUrl
+    };
+
+    EditCompanyProfileResultDto result = await _service.UpdateCompanyProfileAsync(userId, dto);
+
+    if (!result.Succeeded)
+    {
+        return Json(new { success = false, message = result.Message });
     }
-    
 
+    return Json(new
+    {
+        success = true,
+        img = result.AvatarUrl,
+        name = result.CompanyName,
+        email = result.Email
+    });
+}
     [HttpGet]
     [Authorize(Roles = "company")]
     public async Task<IActionResult> MyResponses()

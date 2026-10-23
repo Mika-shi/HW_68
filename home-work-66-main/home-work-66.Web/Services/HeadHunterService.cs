@@ -237,7 +237,7 @@ public class HeadHunterService : IHeadHunterService
         return await _repository.GetUserByIdAsync(id);
     }
 
-    public async Task<EditCompanyProfileViewModel?> GetCompanyProfileForEditAsync(int userId)
+    public async Task<EditCompanyProfileDto?> GetCompanyProfileForEditAsync(int userId)
     {
         User? user = await _repository.GetUserByIdAsync(userId);
 
@@ -246,7 +246,7 @@ public class HeadHunterService : IHeadHunterService
             return null;
         }
 
-        return new EditCompanyProfileViewModel
+        return new EditCompanyProfileDto
         {
             CompanyName = user.CompanyName ?? user.UserName ?? "",
             PhoneNumber = user.PhoneNumber ?? "",
@@ -255,61 +255,40 @@ public class HeadHunterService : IHeadHunterService
         };
     }
     
-    public async Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model)
+    public async Task<EditCompanyProfileResultDto> UpdateCompanyProfileAsync(int userId, EditCompanyProfileDto model)
     {
-        User? user = await  _repository.GetUserByIdAsync(userId);
+        User? user = await _repository.GetUserByIdAsync(userId);
 
         if (user == null)
         {
-            return new EditCompanyProfileResult { Succeeded = false, Message = "Пользователь не найден" };
+            return new EditCompanyProfileResultDto
+            {
+                Succeeded = false,
+                Message = "Пользователь не найден"
+            };
         }
 
         user.CompanyName = model.CompanyName;
         user.PhoneNumber = model.PhoneNumber;
         user.Email = model.Email;
 
-        if (model.Avatar != null && model.Avatar.Length > 0)
+        if (!string.IsNullOrWhiteSpace(model.AvatarUrl))
         {
-            string extension = Path.GetExtension(model.Avatar.FileName).ToLower();
-            string[] allowedExtensions = { ".jpg", ".jpeg", ".png", ".jfif" };
-
-            if (!allowedExtensions.Contains(extension))
-            {
-                return new EditCompanyProfileResult
-                {
-                    Succeeded  = false,
-                    Message = $"Разрешены только форматы {string.Join(", ", allowedExtensions)}"
-                };
-            }
-
-            string path = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
-
-            if (!Directory.Exists(path))
-            {
-                Directory.CreateDirectory(path);
-            }
-
-            string newFileName = $"{Guid.NewGuid()}{extension}";
-            user.AvatarUrl = $"/uploads/avatars/{newFileName}";
-
-            string fileWithPath = Path.Combine(path, newFileName);
-
-            using FileStream fileStream = new FileStream(fileWithPath, FileMode.Create);
-            await model.Avatar.CopyToAsync(fileStream);
+            user.AvatarUrl = model.AvatarUrl;
         }
 
         var result = await _userManager.UpdateAsync(user);
 
         if (!result.Succeeded)
         {
-            return new EditCompanyProfileResult
+            return new EditCompanyProfileResultDto
             {
                 Succeeded = false,
                 Message = string.Join("\n", result.Errors.Select(e => e.Description))
             };
         }
 
-        return new EditCompanyProfileResult
+        return new EditCompanyProfileResultDto
         {
             Succeeded = true,
             AvatarUrl = user.AvatarUrl,

@@ -28,9 +28,9 @@ public interface IHeadHunterService
     
     Task<User?> GetUserByIdAsync(int id);
     
-    Task<EditCompanyProfileViewModel?> GetCompanyProfileForEditAsync(int userId);
+    Task<EditCompanyProfileDto?> GetCompanyProfileForEditAsync(int userId);
     
-    Task<EditCompanyProfileResult> UpdateCompanyProfileAsync(int userId, EditCompanyProfileViewModel model);
+    Task<EditCompanyProfileResultDto> UpdateCompanyProfileAsync(int userId, EditCompanyProfileDto model);
     
     Task<List<Resume>> GetResumesAsync(int userId, bool isOwner);
     
