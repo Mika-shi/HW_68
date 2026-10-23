@@ -2,9 +2,8 @@
 using home_work_66.BLL.Models;
 using home_work_66.BLL.Enums;
 using home_work_66.BLL.Models;
-using home_work_66.ViewModels;
 
-namespace home_work_66.Services;
+namespace home_work_66.BLL.Interfaces;
 
 public interface IHeadHunterService
 {

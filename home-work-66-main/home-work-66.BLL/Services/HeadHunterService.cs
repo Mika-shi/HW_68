@@ -2,13 +2,9 @@
 using home_work_66.BLL.Interfaces;
 using home_work_66.BLL.Models;
 using home_work_66.BLL.Enums;
-using home_work_66.Services;
-using home_work_66.ViewModels;
-/*using home_work_66.Enums;* /
-/*using home_work_66.ViewModels;*/
 using Microsoft.AspNetCore.Identity;
 
-namespace home_work_66.Services;
+namespace home_work_66.BLL.Services;
 
 public class HeadHunterService : IHeadHunterService
 {

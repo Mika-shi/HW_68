@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-namespace home_work_66.Controllers;
+namespace home_work_66.BLL.Interfaces;
 
 public class CompanyController : Controller
 {
