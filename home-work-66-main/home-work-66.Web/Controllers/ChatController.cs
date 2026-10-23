@@ -4,6 +4,7 @@ using home_work_66.Services;
 using home_work_66.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using home_work_66.BLL.DTOs;
 
 namespace home_work_66.Controllers;
 
@@ -38,8 +39,15 @@ public class ChatController : Controller
         {
             return NotFound();
         }
+        
+        ChatCreateDto dto = new ChatCreateDto
+        {
+            CompanyId = model.CompanyId,
+            VacancyId = model.VacancyId,
+            ResumeId = model.ResumeId
+        };
 
-        Chat chat = await _service.CreateChatAsync(model, userId.Value);
+        Chat chat = await _service.CreateChatAsync(dto, userId.Value);
 
         return RedirectToAction("Index", new
         {
@@ -50,9 +58,9 @@ public class ChatController : Controller
 
     public async Task<IActionResult> Index(int id, int companyId)
     {
-        ChatPageViewModel? model = await _service.GetChatPageAsync(id);
+        ChatPageDto? dto = await _service.GetChatPageAsync(id);
 
-        if (model == null)
+        if (dto == null)
         {
             return NotFound();
         }
@@ -63,6 +71,12 @@ public class ChatController : Controller
         {
             return Unauthorized();
         }
+        
+        ChatPageViewModel model = new ChatPageViewModel
+        {
+            Chat = dto.Chat,
+            Messages = dto.Messages
+        };
 
         ViewBag.UserId = userId.Value;
         ViewBag.CompanyId = companyId;
@@ -81,7 +95,7 @@ public class ChatController : Controller
         }
 
         List<Message> messages = await _service.GetMessagesAsync(id);
-
+        
         ViewBag.UserId = userId.Value;
 
         return PartialView("_ChatPartialView", messages);
@@ -102,8 +116,14 @@ public class ChatController : Controller
         {
             return Json(new { success = false });
         }
+        
+        MessageCreateDto dto = new MessageCreateDto
+        {
+            Content = model.Content,
+            ChatId = model.ChatId
+        };
 
-        List<Message> messages = await _service.SendMessageAsync(model, userId.Value);
+        List<Message> messages = await _service.SendMessageAsync(dto, userId.Value);
 
         ViewBag.UserId = userId.Value;
 

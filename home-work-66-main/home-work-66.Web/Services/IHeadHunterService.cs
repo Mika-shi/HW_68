@@ -24,7 +24,7 @@ public interface IHeadHunterService
     
     Task<bool> TogglePublishAsync(int id, int companyId);
     
-    Task<List<CompanyResponsesViewModel>> GetCompanyResponsesAsync(int companyId);
+    Task<List<CompanyResponsesDto>> GetCompanyResponsesAsync(int companyId);
     
     Task<User?> GetUserByIdAsync(int id);
     
@@ -78,13 +78,13 @@ public interface IHeadHunterService
     
     Task<List<Resume>> GetPublishedResumesByCategoryAsync(int? categoryId);
     
-    Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId);
+    Task<Chat> CreateChatAsync(ChatCreateDto model, int userId);
     
-    Task<ChatPageViewModel?> GetChatPageAsync(int chatId);
+    Task<ChatPageDto?> GetChatPageAsync(int chatId);
     
     Task<List<Message>> GetMessagesAsync(int? chatId);
     
-    Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId);
+    Task<List<Message>> SendMessageAsync(MessageCreateDto model, int userId);
     
     Task<Chat?> CreateChatFromResumeAsync(int resumeId, int vacancyId, int companyId);
     

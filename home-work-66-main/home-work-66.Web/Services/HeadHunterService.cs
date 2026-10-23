@@ -218,13 +218,13 @@ public class HeadHunterService : IHeadHunterService
         return true;
     }
     
-    public async Task<List<CompanyResponsesViewModel>> GetCompanyResponsesAsync(int companyId)
+    public async Task<List<CompanyResponsesDto>> GetCompanyResponsesAsync(int companyId)
     {
         List<Chat> chats = await _repository.GetCompanyChatsAsync(companyId);
 
         return chats
             .GroupBy(c => c.VacancyId)
-            .Select(group => new CompanyResponsesViewModel
+            .Select(group => new CompanyResponsesDto
             {
                 Vacancy = group.First().Vacancy!,
                 Responses = group.ToList()
@@ -517,7 +517,7 @@ public class HeadHunterService : IHeadHunterService
         return await _repository.GetPublishedResumesByCategoryAsync(categoryId);
     }
     
-    public async Task<Chat> CreateChatAsync(ChatCreateViewModel model, int userId)
+    public async Task<Chat> CreateChatAsync(ChatCreateDto model, int userId)
 {
     Chat? existingChat = await _repository.GetExistingChatAsync(userId, model.VacancyId);
 
@@ -539,7 +539,7 @@ public class HeadHunterService : IHeadHunterService
     return chat;
 }
 
-    public async Task<ChatPageViewModel?> GetChatPageAsync(int chatId)
+    public async Task<ChatPageDto?> GetChatPageAsync(int chatId)
 {
     Chat? chat = await _repository.GetChatByIdAsync(chatId);
 
@@ -550,7 +550,7 @@ public class HeadHunterService : IHeadHunterService
 
     List<Message> messages = await _repository.GetMessagesByChatIdAsync(chatId);
 
-    return new ChatPageViewModel
+    return new ChatPageDto
     {
         Chat = chat,
         Messages = messages
@@ -562,7 +562,7 @@ public class HeadHunterService : IHeadHunterService
     return await _repository.GetMessagesByChatIdAsync(chatId);
 }
 
-    public async Task<List<Message>> SendMessageAsync(MessageCreateViewModel model, int userId)
+    public async Task<List<Message>> SendMessageAsync(MessageCreateDto model, int userId)
 {
     Message message = new Message
     {

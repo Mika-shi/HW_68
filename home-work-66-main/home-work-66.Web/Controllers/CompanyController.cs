@@ -396,7 +396,15 @@ public class CompanyController : Controller
             return RedirectToAction("Login", "Account");
         }
 
-        List<CompanyResponsesViewModel> responses = await _service.GetCompanyResponsesAsync(userId);
+        List<CompanyResponsesDto> result = await _service.GetCompanyResponsesAsync(userId);
+
+        List<CompanyResponsesViewModel> responses = result
+            .Select(x => new CompanyResponsesViewModel
+            {
+                Vacancy = x.Vacancy,
+                Responses = x.Responses
+            })
+            .ToList();
 
         return View(responses);
     }
