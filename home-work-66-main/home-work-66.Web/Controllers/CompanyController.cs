@@ -78,14 +78,13 @@ public class CompanyController : Controller
             }).ToList(),
 
             PageViewModel = new PageViewModel(
-                result.Vacancies.Count,
+                result.TotalCount,
                 result.CurrentPage,
                 20
             )
         };
 
-        return View(model);
-    }
+        return PartialView("~/Views/Company/Partials/_PublishedVacanciesPartialView.cshtml", model);    }
     
     [HttpGet]
     [AllowAnonymous]

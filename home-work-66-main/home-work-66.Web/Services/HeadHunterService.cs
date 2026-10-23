@@ -592,7 +592,7 @@ public class HeadHunterService : IHeadHunterService
     return chat;
 }
     
-    public async Task<EditProfileViewModel?> GetUserProfileForEditAsync(int userId)
+    public async Task<EditUserProfileDto?> GetUserProfileForEditAsync(int userId)
 {
     User? user = await _repository.GetUserByIdAsync(userId);
 
@@ -601,7 +601,7 @@ public class HeadHunterService : IHeadHunterService
         return null;
     }
 
-    return new EditProfileViewModel
+    return new EditUserProfileDto
     {
         UserName = user.UserName,
         Email = user.Email,
@@ -609,13 +609,13 @@ public class HeadHunterService : IHeadHunterService
     };
 }
 
-    public async Task<EditUserProfileResult> UpdateUserProfileAsync(int userId, EditProfileViewModel model)
-{
+    public async Task<EditUserProfileResultDto> UpdateUserProfileAsync(int userId, EditUserProfileDto model) 
+    {
     User? user = await _repository.GetUserByIdAsync(userId);
 
     if (user == null)
     {
-        return new EditUserProfileResult
+        return new EditUserProfileResultDto
         {
             Succeeded = false,
             Message = "Пользователь не найден"
@@ -626,33 +626,23 @@ public class HeadHunterService : IHeadHunterService
     user.Email = model.Email;
     user.PhoneNumber = model.PhoneNumber;
 
-    if (model.Avatar != null && model.Avatar.Length > 0)
+    if (!string.IsNullOrWhiteSpace(model.AvatarUrl))
     {
-        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
-
-        Directory.CreateDirectory(uploadsFolder);
-
-        string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
-        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-        await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
-        await model.Avatar.CopyToAsync(fileStream);
-
-        user.AvatarUrl = $"/uploads/avatars/{uniqueFileName}";
+        user.AvatarUrl = model.AvatarUrl;
     }
 
     var result = await _userManager.UpdateAsync(user);
 
     if (!result.Succeeded)
     {
-        return new EditUserProfileResult
+        return new EditUserProfileResultDto
         {
             Succeeded = false,
             Message = string.Join("\n", result.Errors.Select(e => e.Description))
         };
     }
 
-    return new EditUserProfileResult
+    return new EditUserProfileResultDto
     {
         Succeeded = true,
         AvatarUrl = user.AvatarUrl,

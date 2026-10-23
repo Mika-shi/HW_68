@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using home_work_66.BLL.DTOs;
 using home_work_66.BLL.Models;
 using home_work_66.Services;
 using home_work_66.ViewModels;
@@ -65,12 +66,19 @@ public class UserController : Controller
             return Unauthorized();
         }
 
-        EditProfileViewModel? model = await _service.GetUserProfileForEditAsync(userId.Value);
+        EditUserProfileDto? dto = await _service.GetUserProfileForEditAsync(userId.Value);
 
-        if (model == null)
+        if (dto == null)
         {
             return Unauthorized();
         }
+
+        EditProfileViewModel model = new EditProfileViewModel
+        {
+            UserName = dto.UserName,
+            Email = dto.Email,
+            PhoneNumber = dto.PhoneNumber
+        };
 
         return PartialView("_EditProfilePartialView", model);
     }
@@ -79,48 +87,80 @@ public class UserController : Controller
     [Authorize]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EditProfile(EditProfileViewModel model)
+{
+    int? userId = GetCurrentUserId();
+
+    if (userId == null)
     {
-        int? userId = GetCurrentUserId();
+        return Json(new { success = false, message = "Пользователь не найден" });
+    }
 
-        if (userId == null)
-        {
-            return Json(new { success = false, message = "Пользователь не найден" });
-        }
+    if (!ModelState.IsValid)
+    {
+        var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
+            .SelectMany(x => x.Value!.Errors)
+            .Select(e => e.ErrorMessage);
 
-        if (!ModelState.IsValid)
-        {
-            var errors = ModelState.Where(x => x.Value != null && x.Value.Errors.Count > 0)
-                .SelectMany(x => x.Value!.Errors)
-                .Select(e => e.ErrorMessage);
-
-            string message = string.Join("\n", errors);
-
-            return Json(new
-            {
-                success = false,
-                message = string.IsNullOrWhiteSpace(message) ? "Пожалуйста, заполните все обязательные поля корректно" : message
-            });
-        }
-
-        EditUserProfileResult result = await _service.UpdateUserProfileAsync(userId.Value, model);
-
-        if (!result.Succeeded)
-        {
-            return Json(new
-            {
-                success = false,
-                message = result.Message
-            });
-        }
+        string message = string.Join("\n", errors);
 
         return Json(new
         {
-            success = true,
-            img = result.AvatarUrl,
-            name = result.UserName,
-            email = result.Email
+            success = false,
+            message = string.IsNullOrWhiteSpace(message)
+                ? "Пожалуйста, заполните все обязательные поля корректно"
+                : message
         });
     }
+
+    string? avatarUrl = null;
+
+    if (model.Avatar != null && model.Avatar.Length > 0)
+    {
+        string uploadsFolder = Path.Combine(
+            Directory.GetCurrentDirectory(),
+            "wwwroot",
+            "uploads",
+            "avatars"
+        );
+
+        Directory.CreateDirectory(uploadsFolder);
+
+        string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
+        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
+        await model.Avatar.CopyToAsync(fileStream);
+
+        avatarUrl = $"/uploads/avatars/{uniqueFileName}";
+    }
+
+    EditUserProfileDto dto = new EditUserProfileDto
+    {
+        UserName = model.UserName,
+        Email = model.Email,
+        PhoneNumber = model.PhoneNumber,
+        AvatarUrl = avatarUrl
+    };
+
+    EditUserProfileResultDto result = await _service.UpdateUserProfileAsync(userId.Value, dto);
+
+    if (!result.Succeeded)
+    {
+        return Json(new
+        {
+            success = false,
+            message = result.Message
+        });
+    }
+
+    return Json(new
+    {
+        success = true,
+        img = result.AvatarUrl,
+        name = result.UserName,
+        email = result.Email
+    });
+}
 
     [Authorize]
     public async Task<IActionResult> Respond(int vacancyId, int companyId)
