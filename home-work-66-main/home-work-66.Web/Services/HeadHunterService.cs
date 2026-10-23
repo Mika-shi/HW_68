@@ -13,14 +13,12 @@ namespace home_work_66.Services;
 public class HeadHunterService : IHeadHunterService
 {
     private readonly UserManager<User> _userManager;
-    private readonly IWebHostEnvironment _webHostEnvironment;
     private readonly SignInManager<User> _signInManager;
     private readonly IHeadHunterRepository _repository;
 
-    public HeadHunterService(UserManager<User> userManager, IWebHostEnvironment webHostEnvironment, SignInManager<User> signInManager, IHeadHunterRepository repository)
+    public HeadHunterService(UserManager<User> userManager,SignInManager<User> signInManager, IHeadHunterRepository repository)
     {
         _userManager = userManager;
-        _webHostEnvironment = webHostEnvironment;
         _signInManager = signInManager;
         _repository = repository;
     }
@@ -661,111 +659,91 @@ public class HeadHunterService : IHeadHunterService
     return await _repository.GetUserResponsesAsync(userId);
 }
     
-    public async Task<AccountResult> RegisterAsync(RegisterViewModel model)
-{
-    AccountResult accountResult = new AccountResult();
-
-    User? existingUser = await _userManager.FindByEmailAsync(model.Email);
-
-    if (existingUser != null)
+    public async Task<AccountResultDto> RegisterAsync(RegisterDto model)
     {
-        accountResult.Errors.Add("В базе уже существует аккаунт с данным адресом почты");
-    }
+        AccountResultDto accountResult = new AccountResultDto();
 
-    bool hasUpper = model.Password.Any(char.IsUpper);
-    bool hasLower = model.Password.Any(char.IsLower);
-    bool hasDigit = model.Password.Any(char.IsDigit);
+        User? existingUser = await _userManager.FindByEmailAsync(model.Email);
 
-    if (!hasUpper || !hasLower || !hasDigit)
-    {
-        accountResult.Errors.Add("Пароль должен содержать в себе 1 букву верхнего регистра, 1 букву нижнего регистра, а также минимум 1 цифру");
-    }
-
-    if (accountResult.Errors.Count > 0)
-    {
-        accountResult.Succeeded = false;
-        return accountResult;
-    }
-
-    string avatarPath = "/default.jpg";
-
-    if (model.Avatar != null)
-    {
-        string uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "avatars");
-
-        if (!Directory.Exists(uploadsFolder))
+        if (existingUser != null)
         {
-            Directory.CreateDirectory(uploadsFolder);
+            accountResult.Errors.Add("В базе уже существует аккаунт с данным адресом почты");
         }
 
-        string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
-        string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+        bool hasUpper = model.Password.Any(char.IsUpper);
+        bool hasLower = model.Password.Any(char.IsLower);
+        bool hasDigit = model.Password.Any(char.IsDigit);
 
-        await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
-        await model.Avatar.CopyToAsync(fileStream);
-
-        avatarPath = $"/uploads/avatars/{uniqueFileName}";
-    }
-
-    User userToCreate;
-    string roleToAssign;
-
-    if (model.IsCompany)
-    {
-        userToCreate = new User
+        if (!hasUpper || !hasLower || !hasDigit)
         {
-            Email = model.Email,
-            UserName = model.Email,
-            CompanyName = model.UserName,
-            PhoneNumber = model.PhoneNumber,
-            AvatarUrl = avatarPath
-        };
-
-        roleToAssign = "company";
-    }
-    else
-    {
-        userToCreate = new User
-        {
-            Email = model.Email,
-            UserName = model.UserName,
-            PhoneNumber = model.PhoneNumber,
-            AvatarUrl = avatarPath
-        };
-
-        roleToAssign = "user";
-    }
-
-    IdentityResult result = await _userManager.CreateAsync(userToCreate, model.Password);
-
-    if (!result.Succeeded)
-    {
-        accountResult.Succeeded = false;
-
-        foreach (IdentityError error in result.Errors)
-        {
-            accountResult.Errors.Add(error.Description);
+            accountResult.Errors.Add("Пароль должен содержать в себе 1 букву верхнего регистра, 1 букву нижнего регистра, а также минимум 1 цифру");
         }
+
+        if (accountResult.Errors.Count > 0)
+        {
+            accountResult.Succeeded = false;
+            return accountResult;
+        }
+
+        User userToCreate;
+        string roleToAssign;
+
+        if (model.IsCompany)
+        {
+            userToCreate = new User
+            {
+                Email = model.Email,
+                UserName = model.Email,
+                CompanyName = model.UserName,
+                PhoneNumber = model.PhoneNumber,
+                AvatarUrl = model.AvatarUrl
+            };
+
+            roleToAssign = "company";
+        }
+        else
+        {
+            userToCreate = new User
+            {
+                Email = model.Email,
+                UserName = model.UserName,
+                PhoneNumber = model.PhoneNumber,
+                AvatarUrl = model.AvatarUrl
+            };
+
+            roleToAssign = "user";
+        }
+
+        IdentityResult result = await _userManager.CreateAsync(userToCreate, model.Password);
+
+        if (!result.Succeeded)
+        {
+            accountResult.Succeeded = false;
+
+            foreach (IdentityError error in result.Errors)
+            {
+                accountResult.Errors.Add(error.Description);
+            }
+
+            return accountResult;
+        }
+
+        await _userManager.AddToRoleAsync(userToCreate, roleToAssign);
+        await _signInManager.SignInAsync(userToCreate, isPersistent: false);
+
+        accountResult.Succeeded = true;
+        accountResult.IsCompany = model.IsCompany;
 
         return accountResult;
     }
-
-    await _userManager.AddToRoleAsync(userToCreate, roleToAssign);
-    await _signInManager.SignInAsync(userToCreate, isPersistent: false);
-
-    accountResult.Succeeded = true;
-    accountResult.IsCompany = model.IsCompany;
-
-    return accountResult;
-}
     
-    public async Task<AccountResult> LoginAsync(LoginViewModel model)
+    public async Task<AccountResultDto> LoginAsync(LoginDto model)
     {
         User? user = await _userManager.FindByEmailAsync(model.Email);
 
         if (user == null)
         {
-            return new AccountResult
+            return new AccountResultDto
             {
                 Succeeded = false,
                 Message = "Неправильный логин и (или) пароль"
@@ -781,7 +759,7 @@ public class HeadHunterService : IHeadHunterService
 
         if (!result.Succeeded)
         {
-            return new AccountResult
+            return new AccountResultDto
             {
                 Succeeded = false,
                 Message = "Неправильный логин и (или) пароль"
@@ -790,7 +768,7 @@ public class HeadHunterService : IHeadHunterService
 
         bool isCompany = await _userManager.IsInRoleAsync(user, "company");
 
-        return new AccountResult
+        return new AccountResultDto
         {
             Succeeded = true,
             IsCompany = isCompany

@@ -56,6 +56,20 @@ public class CompanyController : Controller
     public async Task<IActionResult> GetVacancies(string? searchString, int? categoryId, VacancySortState sortOrder = VacancySortState.DateDesc, int page = 1)
     {
         VacancyListDto result = await _service.GetVacanciesAsync(searchString, categoryId, sortOrder, page);
+        
+        ViewBag.SearchString = searchString;
+        ViewBag.CategoryId = categoryId;
+        ViewBag.SortOrder = sortOrder;
+
+        ViewBag.SalarySort = sortOrder == VacancySortState.SalaryAsc
+            ? VacancySortState.SalaryDesc
+            : VacancySortState.SalaryAsc;
+
+        ViewBag.TitleSort = sortOrder == VacancySortState.TitleAsc
+            ? VacancySortState.TitleDesc
+            : VacancySortState.TitleAsc;
+
+        ViewBag.Categories = await _service.GetCategoriesAsync();
 
         VacancyIndexViewModel model = new VacancyIndexViewModel
         {

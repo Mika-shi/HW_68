@@ -1,4 +1,5 @@
-﻿using home_work_66.BLL.Models;
+﻿using home_work_66.BLL.DTOs;
+using home_work_66.BLL.Models;
 using home_work_66.Services;
 using home_work_66.ViewModels;
 using Microsoft.AspNetCore.Identity;
@@ -30,7 +31,39 @@ public class AccountController : Controller
             return View(model);
         }
 
-        AccountResult result = await _service.RegisterAsync(model);
+        string avatarUrl = "/default.jpg";
+
+        if (model.Avatar != null && model.Avatar.Length > 0)
+        {
+            string uploadsFolder = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "avatars"
+            );
+
+            Directory.CreateDirectory(uploadsFolder);
+
+            string uniqueFileName = $"{Guid.NewGuid()}_{Path.GetFileName(model.Avatar.FileName)}";
+            string filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            await using FileStream fileStream = new FileStream(filePath, FileMode.Create);
+            await model.Avatar.CopyToAsync(fileStream);
+
+            avatarUrl = $"/uploads/avatars/{uniqueFileName}";
+        }
+
+        RegisterDto dto = new RegisterDto
+        {
+            Email = model.Email,
+            UserName = model.UserName,
+            PhoneNumber = model.PhoneNumber,
+            Password = model.Password,
+            IsCompany = model.IsCompany,
+            AvatarUrl = avatarUrl
+        };
+
+        AccountResultDto result = await _service.RegisterAsync(dto);
 
         if (!result.Succeeded)
         {
@@ -68,7 +101,14 @@ public class AccountController : Controller
             return View(model);
         }
 
-        AccountResult result = await _service.LoginAsync(model);
+        LoginDto dto = new LoginDto
+        {
+            Email = model.Email,
+            Password = model.Password,
+            RememberMe = model.RememberMe
+        };
+
+        AccountResultDto result = await _service.LoginAsync(dto);
 
         if (!result.Succeeded)
         {

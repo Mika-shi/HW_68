@@ -96,9 +96,9 @@ public interface IHeadHunterService
     
     Task<List<Chat>> GetUserResponsesAsync(int userId);
     
-    Task<AccountResult> RegisterAsync(RegisterViewModel model);
+    Task<AccountResultDto> RegisterAsync(RegisterDto model);
     
-    Task<AccountResult> LoginAsync(LoginViewModel model);
+    Task<AccountResultDto> LoginAsync(LoginDto model);
     
     Task LogOffAsync();
     
